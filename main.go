@@ -14,7 +14,7 @@ import (
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
 
-var nonEmphasizedTrackVolume = uint8(100)
+var nonEmphasizedTrackVolume = uint8(40)
 
 func main() {
 
@@ -29,11 +29,12 @@ func main() {
 	}
 
 	// Collecting record of all tracks in the MIDI file so we can construct our new MIDI files in the same track order
-	var allTracks []*smf.Track
+	var tracksWithLoweredVolume []*smf.Track
 	for k := uint16(0); k < midi.GetTracksNum(); k++ {
-		allTracks = append(allTracks, midi.GetTrack(k))
+		tracksWithLoweredVolume = append(tracksWithLoweredVolume, midi.GetTrack(k))
 	}
 
+	// iterating through all tracks in MIDI file
 	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {
 		curTrack := midi.GetTrack(currentTrackNum)
 		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
@@ -48,7 +49,7 @@ func main() {
 		iter := curTrack.GetIterator()
 		volumeMIDIEvent := createNewVolumeEvent(curTrack, nonEmphasizedTrackVolume, trackChannel)
 
-		var newMIDIFile *smf.MIDIFile
+		var newTrack *smf.Track
 
 		var eventPos = uint32(0)
 		var trackName string
@@ -60,24 +61,14 @@ func main() {
 			// fmt.Println(iter.GetValue())
 			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatus && iter.GetValue().GetData()[0] == volumeControllerNum {
-				newMIDIFile = replaceEvent(curTrack, eventPos, volumeMIDIEvent, currentTrackNum, allTracks)
+				fmt.Println(iter.GetValue().String())
+				fmt.Println(volumeMIDIEvent.String())
+				newTrack = createNewTrack(curTrack, eventPos, volumeMIDIEvent, currentTrackNum, tracksWithLoweredVolume)
+				createMIDIFile(newTrack, currentTrackNum, tracksWithLoweredVolume, trackName)
 				break
 			}
 			eventPos++
 		}
-		fmt.Println(trackName)
-
-		// Save to new midi source file
-		outputMidi, err := os.Create("outputMidi.mid")
-		if err != nil {
-			log.Panicf("Failed to create new MIDI file with error: %v", err)
-		}
-		defer outputMidi.Close()
-
-		// Create buffering stream
-		writer := bufio.NewWriter(outputMidi)
-		smfio.Write(writer, newMIDIFile)
-		writer.Flush()
 
 		if currentTrackNum == 1 {
 			break
@@ -109,7 +100,7 @@ func isHeaderTrack(track *smf.Track) bool {
 	return headerEvent
 }
 
-func replaceEvent(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent, currentTrackNum uint16, allTracks []*smf.Track) *smf.MIDIFile {
+func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent, currentTrackNum uint16, allTracks []*smf.Track) *smf.Track {
 	allTrackEvents := track.GetAllEvents()
 	allTrackEvents[replacePos] = newEvent
 
@@ -117,6 +108,11 @@ func replaceEvent(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent, 
 	if err != nil {
 		log.Printf("Failed to create new track from event list with error: %v", err)
 	}
+
+	return updatedTrack
+}
+
+func createMIDIFile(newTrack *smf.Track, trackToUpdate uint16, allTracks []*smf.Track, filename string) {
 	// Create division
 	division, err := smf.NewDivision(960, smf.NOSMTPE)
 	if err != nil {
@@ -124,20 +120,30 @@ func replaceEvent(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent, 
 	}
 
 	// Create new midi struct
-	newMidi, err := smf.NewSMF(smf.Format1, *division)
+	newMIDIFile, err := smf.NewSMF(smf.Format1, *division)
 	if err != nil {
 		log.Printf("Failed to create new MIDI object with error: %v", err)
 	}
 
 	for i := uint16(0); i < uint16(len(allTracks)); i++ {
-		if i == currentTrackNum {
-			newMidi.AddTrack(updatedTrack)
+		if i == trackToUpdate {
+			newMIDIFile.AddTrack(newTrack)
 		} else {
-			newMidi.AddTrack(allTracks[i])
+			newMIDIFile.AddTrack(allTracks[i])
 		}
 	}
 
-	return newMidi
+	// Save to new midi source file
+	outputMidi, err := os.Create(filename + ".mid")
+	if err != nil {
+		log.Panicf("Failed to create new MIDI file with error: %v", err)
+	}
+	defer outputMidi.Close()
+
+	// Create buffering stream
+	writer := bufio.NewWriter(outputMidi)
+	smfio.Write(writer, newMIDIFile)
+	writer.Flush()
 }
 
 func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
