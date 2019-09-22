@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -25,20 +26,32 @@ func init() {
 
 func main() {
 
-	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse")
-	// dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse")
+	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse\n(e.g., './acc-midi-splitter -f dominefiliunigenite.mid')")
+	dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse\n(e.g., './acc-midi-splitter -d ./midi-files/')")
+
 	flag.Parse()
 
-	fmt.Println(*fileFlagPtr)
-	if *fileFlagPtr == "" || len(strings.Split(*fileFlagPtr, ".")) == 1 {
-		log.Fatal("Please supply name of file - do not forget file extension")
-	} else if len(strings.Split(*fileFlagPtr, ".")) > 2 {
-		log.Fatal("Filename has more than one \".\" - please fix")
+	if *fileFlagPtr == "" && *dirFlagPtr == "" {
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	// if *dirFlagPtr == "" {
-	// 	log.Fatal("Please supply name of directory")
-	// }
+	if len(strings.Split(*fileFlagPtr, ".")) == 1 {
+		fmt.Println("Please supply name of file - do not forget file extension")
+		os.Exit(1)
+	} else if len(strings.Split(*fileFlagPtr, ".")) > 2 {
+		fmt.Println("Filename has more than one \".\" - please fix")
+		os.Exit(1)
+	} else if strings.ToLower(strings.Split(*fileFlagPtr, ".")[1]) != "mid" || strings.ToLower(strings.Split(*fileFlagPtr, ".")[1]) != "midi" {
+		fmt.Println("Only .mid and .midi files supported")
+		os.Exit(1)
+	}
+
+	if *dirFlagPtr != "" {
+		files := grabFilesInDir(*dirFlagPtr)
+		fmt.Println(files)
+	}
+	log.Fatal()
 
 	midiFileName := strings.Split(*fileFlagPtr, ".")[0]
 
@@ -137,6 +150,22 @@ func main() {
 		go writeNewMIDIFile(&wg, num, mFile, trackNameMap, midiFileName)
 	}
 	wg.Wait()
+}
+
+func grabFilesInDir(dirPath string) []string {
+	var files []string
+
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range files {
+		fmt.Println(file)
+	}
+	return files
 }
 
 func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile, trackNameMap map[uint16]string, midiFileName string) {
