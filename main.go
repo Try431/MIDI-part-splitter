@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -18,11 +19,31 @@ const assetRoute = "./assets/"
 
 var nonEmphasizedTrackVolume = uint8(25)
 
-func main() {
+func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
+
+func main() {
+
+	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse")
+	// dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse")
+	flag.Parse()
+
+	fmt.Println(*fileFlagPtr)
+	if *fileFlagPtr == "" || len(strings.Split(*fileFlagPtr, ".")) == 1 {
+		log.Fatal("Please supply name of file - do not forget file extension")
+	} else if len(strings.Split(*fileFlagPtr, ".")) > 2 {
+		log.Fatal("Filename has more than one \".\" - please fix")
+	}
+
+	// if *dirFlagPtr == "" {
+	// 	log.Fatal("Please supply name of directory")
+	// }
+
+	midiFileName := strings.Split(*fileFlagPtr, ".")[0]
 
 	// Open test midi file
-	midiFileName := "dominefiliunigenite"
+	// midiFileName := "njooniwaaminifuv422019"
 
 	file, _ := os.Open(assetRoute + midiFileName + ".mid")
 	defer file.Close()
@@ -37,6 +58,8 @@ func main() {
 	var tracksWithLoweredVolume []*smf.Track
 	var tracksAtFullVolume []*smf.Track
 	trackNameMap := make(map[uint16]string)
+
+	fmt.Println(midi.GetTracksNum())
 
 	// iterating through all tracks in MIDI file
 	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {
@@ -66,7 +89,6 @@ func main() {
 			if iter.GetValue().GetMetaType() == smf.MetaSequenceTrackName {
 				trackNameMap[currentTrackNum] = grabTrackName(iter.GetValue())
 			}
-			// fmt.Println(iter.GetValue().String(), iter.GetValue().GetStatus(), iter.GetValue().GetData()[0])
 			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatus && iter.GetValue().GetData()[0] == volumeControllerNum {
 				// fmt.Println(iter.GetValue().String())
@@ -154,7 +176,6 @@ func isHeaderTrackAndGetTrackChannel(track *smf.Track) (bool, uint8) {
 	headerEvent := true
 	var chanNum uint8
 	for _, e := range allEvents {
-		// fmt.Println(e.String())
 		if strings.HasPrefix(e.String(), "MIDI") {
 			headerEvent = false
 			chanNum = e.GetChannel()
@@ -172,7 +193,7 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 	// create a new track with our updated array of events
 	updatedTrack, err := smf.TrackFromArray(allTrackEvents)
 	if err != nil {
-		log.Printf("Failed to create new track from event list with error: %v", err)
+		log.Panicf("Failed to create new track from event list with error: %v", err)
 	}
 
 	return updatedTrack
@@ -181,7 +202,7 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
 	newVolumeMIDIEvent, err := smf.NewMIDIEvent(0, controlChangeStatusNum, channel, volumeControllerNum, newVolume)
 	if err != nil {
-		log.Printf("Failed to create new MIDI event with error: %v", err)
+		log.Panicf("Failed to create new MIDI event with error: %v", err)
 	}
 	return newVolumeMIDIEvent
 }
