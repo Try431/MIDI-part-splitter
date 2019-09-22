@@ -16,18 +16,20 @@ import (
 
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
-const assetRoute = "./assets/"
 
-var nonEmphasizedTrackVolume = uint8(25)
+// const assetRoute = "./assets/"
+
+var nonEmphasizedTrackVolume = uint8(40)
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
 
 func main() {
+	binaryName := os.Args[0]
 
-	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse\n(e.g., './acc-midi-splitter -f dominefiliunigenite.mid')")
-	dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse\n(e.g., './acc-midi-splitter -d ./midi-files/')")
+	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse\n(e.g., '"+binaryName+" -f dominefiliunigenite.mid')")
+	dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse\n(e.g., '"+binaryName+" -d ./midi-files/')")
 
 	flag.Parse()
 
@@ -42,23 +44,28 @@ func main() {
 	} else if len(strings.Split(*fileFlagPtr, ".")) > 2 {
 		fmt.Println("Filename has more than one \".\" - please fix")
 		os.Exit(1)
-	} else if strings.ToLower(strings.Split(*fileFlagPtr, ".")[1]) != "mid" || strings.ToLower(strings.Split(*fileFlagPtr, ".")[1]) != "midi" {
+	} else if strings.ToLower(strings.Split(*fileFlagPtr, ".")[1]) != "mid" && strings.ToLower(strings.Split(*fileFlagPtr, ".")[1]) != "midi" {
 		fmt.Println("Only .mid and .midi files supported")
 		os.Exit(1)
 	}
 
 	if *dirFlagPtr != "" {
-		files := grabFilesInDir(*dirFlagPtr)
-		fmt.Println(files)
+		// files := grabFilesInDir(*dirFlagPtr)
+		// fmt.Println(files)
 	}
-	log.Fatal()
+	// log.Fatal()
 
-	midiFileName := strings.Split(*fileFlagPtr, ".")[0]
+	midiFilePath := strings.Split(*fileFlagPtr, ".")[0]
+	midiFileName := midiFilePath
+	if strings.Contains(midiFilePath, "/") {
+		split := strings.Split(midiFilePath, "/")
+		midiFileName = split[len(split)-1]
+	}
 
 	// Open test midi file
 	// midiFileName := "njooniwaaminifuv422019"
 
-	file, _ := os.Open(assetRoute + midiFileName + ".mid")
+	file, _ := os.Open(midiFilePath + ".mid")
 	defer file.Close()
 
 	// Read and save midi to smf.MIDIFile struct
@@ -71,8 +78,6 @@ func main() {
 	var tracksWithLoweredVolume []*smf.Track
 	var tracksAtFullVolume []*smf.Track
 	trackNameMap := make(map[uint16]string)
-
-	fmt.Println(midi.GetTracksNum())
 
 	// iterating through all tracks in MIDI file
 	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {

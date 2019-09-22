@@ -1,4 +1,4 @@
-module github.com/Try431/acc-midi-splitter
+module github.com/Try431/MIDI-part-splitter
 
 go 1.12
 
