@@ -11,12 +11,15 @@ import (
 	"github.com/Try431/EasyMIDI/smfio"
 )
 
+const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
+
+var nonEmphasizedTrackVolume = uint8(100)
 
 func main() {
 
 	// Open test midi file
-	file, _ := os.Open("./assets/dominefiliunigenite_high_sop.mid")
+	file, _ := os.Open("./assets/dominefiliunigenite.mid")
 	defer file.Close()
 
 	// Read and save midi to smf.MIDIFile struct
@@ -25,43 +28,60 @@ func main() {
 		log.Panicf("Failed to read MIDI file %v with error: %v", file, err)
 	}
 
-	var currentTrack uint16
-	for currentTrack = 0; currentTrack < midi.GetTracksNum(); currentTrack++ {
-		track := midi.GetTrack(currentTrack)
+	// Collecting record of all tracks in the MIDI file so we can construct our new MIDI files in the same track order
+	var allTracks []*smf.Track
+	for k := uint16(0); k < midi.GetTracksNum(); k++ {
+		allTracks = append(allTracks, midi.GetTrack(k))
+	}
+
+	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {
+		curTrack := midi.GetTrack(currentTrackNum)
 		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
-		if isHeaderTrack(track) {
+		if isHeaderTrack(curTrack) {
 			continue
 		}
 
-		// TESTING
-		if currentTrack == 2 {
-			break
-		}
-
-		trackChannel := track.GetAllEvents()[0].GetChannel()
-		controlChangeStatus := 0xB0 + trackChannel
+		trackChannel := curTrack.GetAllEvents()[0].GetChannel()
+		controlChangeStatus := controlChangeStatusNum + trackChannel
 
 		// Get all midi events via iterator
-		iter := track.GetIterator()
-		volumeMIDIEvent := createNewVolumeEvent(track, 75, trackChannel)
+		iter := curTrack.GetIterator()
+		volumeMIDIEvent := createNewVolumeEvent(curTrack, nonEmphasizedTrackVolume, trackChannel)
+
+		var newMIDIFile *smf.MIDIFile
 
 		var eventPos = uint32(0)
-		var newTrack *smf.Track
 		var trackName string
 		for iter.MoveNext() {
+			// grab the track name so we can name our output files correctly
 			if iter.GetValue().GetMetaType() == smf.MetaSequenceTrackName {
 				trackName = grabTrackName(iter.GetValue())
 			}
-			fmt.Println(iter.GetValue())
-			// TESTING
+			// fmt.Println(iter.GetValue())
+			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatus && iter.GetValue().GetData()[0] == volumeControllerNum {
-				newTrack = replaceEvent(track, eventPos, volumeMIDIEvent)
+				newMIDIFile = replaceEvent(curTrack, eventPos, volumeMIDIEvent, currentTrackNum, allTracks)
 				break
 			}
 			eventPos++
 		}
+		fmt.Println(trackName)
 
-		fmt.Println(newTrack)
+		// Save to new midi source file
+		outputMidi, err := os.Create("outputMidi.mid")
+		if err != nil {
+			log.Panicf("Failed to create new MIDI file with error: %v", err)
+		}
+		defer outputMidi.Close()
+
+		// Create buffering stream
+		writer := bufio.NewWriter(outputMidi)
+		smfio.Write(writer, newMIDIFile)
+		writer.Flush()
+
+		if currentTrackNum == 1 {
+			break
+		}
 	}
 
 }
@@ -80,7 +100,6 @@ func isHeaderTrack(track *smf.Track) bool {
 	allEvents := track.GetAllEvents()
 	headerEvent := true
 	for _, e := range allEvents {
-		// fmt.Println(e.GetData())
 		// fmt.Println(e.String())
 		if strings.HasPrefix(e.String(), "MIDI") {
 			headerEvent = false
@@ -90,7 +109,7 @@ func isHeaderTrack(track *smf.Track) bool {
 	return headerEvent
 }
 
-func replaceEvent(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent) *smf.Track {
+func replaceEvent(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent, currentTrackNum uint16, allTracks []*smf.Track) *smf.MIDIFile {
 	allTrackEvents := track.GetAllEvents()
 	allTrackEvents[replacePos] = newEvent
 
@@ -98,13 +117,31 @@ func replaceEvent(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent) 
 	if err != nil {
 		log.Printf("Failed to create new track from event list with error: %v", err)
 	}
+	// Create division
+	division, err := smf.NewDivision(960, smf.NOSMTPE)
+	if err != nil {
+		log.Printf("Failed to create new Division object with error: %v", err)
+	}
 
-	return updatedTrack
+	// Create new midi struct
+	newMidi, err := smf.NewSMF(smf.Format1, *division)
+	if err != nil {
+		log.Printf("Failed to create new MIDI object with error: %v", err)
+	}
+
+	for i := uint16(0); i < uint16(len(allTracks)); i++ {
+		if i == currentTrackNum {
+			newMidi.AddTrack(updatedTrack)
+		} else {
+			newMidi.AddTrack(allTracks[i])
+		}
+	}
+
+	return newMidi
 }
 
 func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
-	var controlChangeStatus uint8
-	controlChangeStatus = 0xB0 + channel
+	controlChangeStatus := controlChangeStatusNum + channel
 	newVolumeMIDIEvent, err := smf.NewMIDIEvent(0, controlChangeStatus, channel, volumeControllerNum, newVolume)
 	if err != nil {
 		log.Printf("Failed to create new MIDI event with error: %v", err)
