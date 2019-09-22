@@ -1,4 +1,4 @@
-# acc-midi-splitter
+# MIDI-part-splitter
 
 ## Helpful References
 - https://www.csie.ntu.edu.tw/~r92092/ref/midi/
