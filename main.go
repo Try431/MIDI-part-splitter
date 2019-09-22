@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/Try431/EasyMIDI/smf"
 	"github.com/Try431/EasyMIDI/smfio"
@@ -13,14 +14,17 @@ import (
 
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
+const assetRoute = "./assets/"
 
-var nonEmphasizedTrackVolume = uint8(10)
+var nonEmphasizedTrackVolume = uint8(25)
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Open test midi file
-	file, _ := os.Open("./assets/dominefiliunigenite.mid")
+	midiFileName := "dominefiliunigenite"
+
+	file, _ := os.Open(assetRoute + midiFileName + ".mid")
 	defer file.Close()
 
 	// Read and save midi to smf.MIDIFile struct
@@ -32,10 +36,7 @@ func main() {
 	// Collecting record of all tracks in the MIDI file so we can construct our new MIDI files in the same track order
 	var tracksWithLoweredVolume []*smf.Track
 	var tracksAtFullVolume []*smf.Track
-	// for k := uint16(0); k < midi.GetTracksNum(); k++ {
-
-	// tracksWithLoweredVolume = append(tracksWithLoweredVolume, midi.GetTrack(k))
-	// }
+	trackNameMap := make(map[uint16]string)
 
 	// iterating through all tracks in MIDI file
 	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {
@@ -49,8 +50,9 @@ func main() {
 			continue
 		}
 
+		// I would have thought that for channel 3, the controlChangeStatus number should be 0xB3, but
+		// it seems the MIDIs created for ACC all use 0xB0, 0x80, and 0x90 for all channels
 		controlChangeStatus := controlChangeStatusNum // + trackChannel
-		fmt.Println(controlChangeStatus)
 
 		// Get all midi events via iterator
 		iter := curTrack.GetIterator()
@@ -59,17 +61,16 @@ func main() {
 		var newTrack *smf.Track
 
 		var eventPos = uint32(0)
-		// var trackName string
 		for iter.MoveNext() {
 			// grab the track name so we can name our output files correctly
 			if iter.GetValue().GetMetaType() == smf.MetaSequenceTrackName {
-				// trackName = grabTrackName(iter.GetValue())
+				trackNameMap[currentTrackNum] = grabTrackName(iter.GetValue())
 			}
 			// fmt.Println(iter.GetValue().String(), iter.GetValue().GetStatus(), iter.GetValue().GetData()[0])
 			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatus && iter.GetValue().GetData()[0] == volumeControllerNum {
-				fmt.Println(iter.GetValue().String())
-				fmt.Println(volumeMIDIEvent.String())
+				// fmt.Println(iter.GetValue().String())
+				// fmt.Println(volumeMIDIEvent.String())
 				newTrack = createNewTrack(curTrack, eventPos, volumeMIDIEvent, currentTrackNum)
 				tracksWithLoweredVolume = append(tracksWithLoweredVolume, newTrack)
 				break
@@ -77,9 +78,6 @@ func main() {
 			eventPos++
 		}
 
-		// if currentTrackNum == 2 {
-		// 	break
-		// }
 	}
 
 	var newMIDIFilesToBeCreated []*smf.MIDIFile
@@ -111,25 +109,34 @@ func main() {
 		emphasizedTrackNum++
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(len(newMIDIFilesToBeCreated))
 	for num, mFile := range newMIDIFilesToBeCreated {
-		// Save to new midi source file
-		fmt.Println(num)
-		if num == 0 {
-			continue
-		}
-		// fileName := "file" + string(num)
-		outputMidi, err := os.Create("test.mid")
-		if err != nil {
-			log.Panicf("Failed to create new MIDI file with error: %v", err)
-		}
-		defer outputMidi.Close()
-
-		// Create buffering stream
-		writer := bufio.NewWriter(outputMidi)
-		smfio.Write(writer, mFile)
-		writer.Flush()
-		break
+		go writeNewMIDIFile(&wg, num, mFile, trackNameMap, midiFileName)
 	}
+	wg.Wait()
+}
+
+func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile, trackNameMap map[uint16]string, midiFileName string) {
+	defer wg.Done()
+	// Save to new midi file
+	var newFileName string
+	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
+		newFileName = "./output/" + midiFileName + "_" + trackName + ".mid"
+	} else {
+		return
+	}
+
+	fmt.Println("Creating", newFileName)
+	outputMidi, err := os.Create(newFileName)
+	if err != nil {
+		log.Panicf("Failed to create new MIDI file with error: %v", err)
+	}
+	defer outputMidi.Close()
+
+	writer := bufio.NewWriter(outputMidi)
+	smfio.Write(writer, newMidiFile)
+	writer.Flush()
 }
 
 func grabTrackName(e smf.Event) string {
@@ -171,45 +178,8 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 	return updatedTrack
 }
 
-func createMIDIFile(newTrack *smf.Track, trackNumToUpdate uint16, allTracks []*smf.Track, filename string) {
-	// Create division
-	division, err := smf.NewDivision(960, smf.NOSMTPE)
-	if err != nil {
-		log.Printf("Failed to create new Division object with error: %v", err)
-	}
-
-	// Create new midi struct
-	newMIDIFile, err := smf.NewSMF(smf.Format1, *division)
-	if err != nil {
-		log.Printf("Failed to create new MIDI object with error: %v", err)
-	}
-
-	for i := uint16(0); i < uint16(len(allTracks)); i++ {
-		if i == trackNumToUpdate {
-			newMIDIFile.AddTrack(newTrack)
-		} else {
-			newMIDIFile.AddTrack(allTracks[i])
-		}
-	}
-
-	// Save to new midi source file
-	outputMidi, err := os.Create(filename + ".mid")
-	if err != nil {
-		log.Panicf("Failed to create new MIDI file with error: %v", err)
-	}
-	defer outputMidi.Close()
-
-	// Create buffering stream
-	writer := bufio.NewWriter(outputMidi)
-	smfio.Write(writer, newMIDIFile)
-	writer.Flush()
-}
-
 func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
-	// I would have thought that for channel 3, the controlChangeStatus number should be 0xB3, but
-	// it seems the MIDIs created for ACC all use 0xB0, 0x80, and 0x90 for all channels
-	controlChangeStatus := controlChangeStatusNum //+ channel
-	newVolumeMIDIEvent, err := smf.NewMIDIEvent(0, controlChangeStatus, channel, volumeControllerNum, newVolume)
+	newVolumeMIDIEvent, err := smf.NewMIDIEvent(0, controlChangeStatusNum, channel, volumeControllerNum, newVolume)
 	if err != nil {
 		log.Printf("Failed to create new MIDI event with error: %v", err)
 	}
