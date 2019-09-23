@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -128,6 +129,12 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 	}
 
 	fmt.Println("Creating", newFileName, "with all other tracks set to volume", NonEmphasizedTrackVolume)
+
+	newpath := filepath.Join(".", "output")
+	err := os.MkdirAll(newpath, os.ModePerm)
+	if err != nil {
+		log.Panicf("Failed to create directory %v with error: %v", newFileName, err)
+	}
 	outputMidi, err := os.Create(newFileName)
 	if err != nil {
 		log.Panicf("Failed to create new MIDI file with error: %v", err)
