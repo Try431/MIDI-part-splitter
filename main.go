@@ -12,9 +12,6 @@ import (
 	"github.com/Try431/MIDI-part-splitter/midi"
 )
 
-const controlChangeStatusNum = uint8(0xB0)
-const volumeControllerNum = uint8(0x07)
-
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
