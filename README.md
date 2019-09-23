@@ -29,12 +29,14 @@ Usage of ./MIDI-part-splitter:
 ````
 Given an `assets` directory containing the following MIDI files:
 
+### Examples 
+
 ````
 $ ls assets/
 dominefiliunigenite.mid cumsanctospiritu.mid
 ````
 
-### Example 1 - Parsing a single MIDI file with SATB split
+#### Example 1 - Parsing a single MIDI file with SATB split
 
 ````
 $ ./MIDI-part-splitter -f ./assets/dominefiliunigenite.mid
@@ -45,7 +47,7 @@ Creating ./output/dominefiliunigenite_Bass.mid with all other tracks set to volu
 Creating ./output/dominefiliunigenite_Piano.mid with all other tracks set to volume 40
 ````
 
-### Example 2 - Parsing a single MIDI file, and setting the volume of the non-emphasized tracks
+#### Example 2 - Parsing a single MIDI file, and setting the volume of the non-emphasized tracks
 
 ````
 $ ./MIDI-part-splitter -f ./assets/cumsanctospiritu.mid -vol 20
@@ -56,7 +58,7 @@ Creating ./output/dominefiliunigenite_Bass.mid with all other tracks set to volu
 Creating ./output/dominefiliunigenite_Piano.mid with all other tracks set to volume 20
 ````
 
-### Example 3 - Parsing all MIDI files in a directory
+#### Example 3 - Parsing all MIDI files in a directory
 
 ````
 $ ./MIDI-part-splitter -d ./assets/
