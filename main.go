@@ -55,7 +55,12 @@ func main() {
 			extensions = append(extensions, strings.ToLower(dotSplit[len(dotSplit)-1]))
 		}
 
-		if !strings.HasPrefix(*fileFlagPtr, "./") {
+		if strings.HasPrefix(*fileFlagPtr, "../") {
+			// fmt.Println(*fileFlagPtr)
+			midiFilePath := strings.Split(*fileFlagPtr, ".mid")[0]
+			filePaths = append(filePaths, midiFilePath)
+			// log.Fatal()
+		} else if !strings.HasPrefix(*fileFlagPtr, "./") {
 			if len(dotSplit) != 2 {
 				fmt.Println("Filename has more than one \".\" - please fix")
 				os.Exit(1)
@@ -89,7 +94,7 @@ func main() {
 		fPath := filePaths[i]
 		fName := fileNames[i]
 		ext := extensions[i]
-		fmt.Println(fPath, fName, ext)
+		// fmt.Println(fPath, fName, ext)
 		// log.Fatal()
 		go midi.SplitParts(&wg, fPath, fName, ext)
 	}
