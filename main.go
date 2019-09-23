@@ -33,6 +33,7 @@ func main() {
 
 	var filePaths []string
 	var fileNames []string
+	var extensions []string
 
 	if *fileFlagPtr == "" && *dirFlagPtr == "" {
 		flag.Usage()
@@ -50,6 +51,8 @@ func main() {
 		if strings.ToLower(dotSplit[len(dotSplit)-1]) != "mid" && strings.ToLower(dotSplit[len(dotSplit)-1]) != "midi" {
 			fmt.Println("Only .mid and .midi files supported")
 			os.Exit(1)
+		} else {
+			extensions = append(extensions, strings.ToLower(dotSplit[len(dotSplit)-1]))
 		}
 
 		if !strings.HasPrefix(*fileFlagPtr, "./") {
@@ -71,36 +74,47 @@ func main() {
 	}
 
 	if *dirFlagPtr != "" {
-		files := grabFilesInDir(*dirFlagPtr)
+		files, exts := grabFilesInDir(*dirFlagPtr)
 		filePaths = append(filePaths, files...)
+		extensions = append(extensions, exts...)
 	}
 	fileNames = extractFileNamesFromPaths(filePaths)
 
+	if len(fileNames) != len(filePaths) && len(filePaths) != len(extensions) {
+		log.Panicf("Mismatched number of file names, file paths, and file extensions")
+	}
 	var wg sync.WaitGroup
 	wg.Add(len(filePaths))
 	for i := 0; i < len(fileNames); i++ {
 		fPath := filePaths[i]
 		fName := fileNames[i]
-		go midi.SplitParts(&wg, fPath, fName)
+		ext := extensions[i]
+		fmt.Println(fPath, fName, ext)
+		// log.Fatal()
+		go midi.SplitParts(&wg, fPath, fName, ext)
 	}
 	wg.Wait()
 }
 
-func grabFilesInDir(dirPath string) []string {
+func grabFilesInDir(dirPath string) ([]string, []string) {
 	var files []string
+	var exts []string
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
-		midiFilePath := strings.Split(path, ".")[0]
+		midiFilePath := strings.Split(path, ".mid")[0]
+		dotSplit := strings.Split(path, ".")
+		extension := dotSplit[len(dotSplit)-1]
 		files = append(files, midiFilePath)
+		exts = append(exts, extension)
 		return nil
 	})
 	if err != nil {
-		panic(err)
+		log.Panicf("Failed to walk through dirPath %v with error: %v", dirPath, err)
 	}
-	return files
+	return files, exts
 }
 
 func extractFileNamesFromPaths(filePaths []string) []string {

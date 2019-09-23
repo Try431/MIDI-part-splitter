@@ -17,9 +17,15 @@ const volumeControllerNum = uint8(0x07)
 
 var nonEmphasizedTrackVolume = uint8(40)
 
-func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string) {
+// SplitParts splits the MIDI file into different voice parts and creates new MIDI files
+// with those voice parts emphasized
+func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string, extension string) {
 	defer mainWg.Done()
-	file, _ := os.Open(midiFilePath + ".mid")
+	fullFilePath := midiFilePath + "." + extension
+	file, err := os.Open(midiFilePath + "." + extension)
+	if err != nil {
+		log.Panicf("Failed to open %v with error: %v", fullFilePath, err)
+	}
 	defer file.Close()
 
 	// Read and save midi to smf.MIDIFile struct
