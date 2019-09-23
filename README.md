@@ -27,9 +27,9 @@ Usage of ./MIDI-part-splitter:
     	[Optional] Volume of de-emphasized voice tracks - must be between 0 and 100 (default 40)
 
 ````
+### Examples 
 Given an `assets` directory containing the following MIDI files:
 
-### Examples 
 
 ````
 $ ls assets/
