@@ -15,8 +15,6 @@ import (
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
 
-// const assetRoute = "./assets/"
-
 var nonEmphasizedTrackVolume = uint8(40)
 
 func init() {
@@ -28,17 +26,25 @@ func main() {
 
 	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse\n(e.g., '"+binaryName+" -f midi_file.mid')")
 	dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse - will recursively search subdirectories\n(e.g., '"+binaryName+" -d ./dir/to/search/')")
+	volFlagPtr := flag.Int("vol", 40, "[Optional] Volume of de-emphasized voice tracks - must be between 0 and 100")
 
 	flag.Parse()
 
+	if isFlagPassed("vol") {
+		nonEmphasizedTrackVolume = uint8(*volFlagPtr)
+	}
 	var filePaths []string
 	var fileNames []string
 	var extensions []string
 
-	if *fileFlagPtr == "" && *dirFlagPtr == "" {
+	if !isFlagPassed("f") && !isFlagPassed("d") {
 		flag.Usage()
 		os.Exit(1)
 	}
+	// if *fileFlagPtr == "" && *dirFlagPtr == "" {
+	// 	flag.Usage()
+	// 	os.Exit(1)
+	// }
 
 	if *fileFlagPtr != "" {
 		dotSplit := strings.Split(*fileFlagPtr, ".")
@@ -56,10 +62,8 @@ func main() {
 		}
 
 		if strings.HasPrefix(*fileFlagPtr, "../") {
-			// fmt.Println(*fileFlagPtr)
 			midiFilePath := strings.Split(*fileFlagPtr, ".mid")[0]
 			filePaths = append(filePaths, midiFilePath)
-			// log.Fatal()
 		} else if !strings.HasPrefix(*fileFlagPtr, "./") {
 			if len(dotSplit) != 2 {
 				fmt.Println("Filename has more than one \".\" - please fix")
@@ -101,6 +105,18 @@ func main() {
 	wg.Wait()
 }
 
+// Determines if a flag was passed in
+func isFlagPassed(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
+}
+
+// Walks through directory recursively and grabs all .mid files
 func grabFilesInDir(dirPath string) ([]string, []string) {
 	var files []string
 	var exts []string
@@ -122,6 +138,7 @@ func grabFilesInDir(dirPath string) ([]string, []string) {
 	return files, exts
 }
 
+// Grabs the actual .mid or .midi filename from a filepath
 func extractFileNamesFromPaths(filePaths []string) []string {
 	var fileNames []string
 	for _, path := range filePaths {

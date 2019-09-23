@@ -28,13 +28,13 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	}
 	defer file.Close()
 
-	// Read and save midi to smf.MIDIFile struct
+	// read and save midi to smf.MIDIFile struct
 	midi, err := smfio.Read(bufio.NewReader(file))
 	if err != nil {
 		log.Panicf("Failed to read MIDI file %v with error: %v", file, err)
 	}
 
-	// Collecting record of all tracks in the MIDI file so we can construct our new MIDI files in the same track order
+	// collecting record of all tracks in the MIDI file so we can construct our new MIDI files in the same track order
 	var tracksWithLoweredVolume []*smf.Track
 	var tracksAtFullVolume []*smf.Track
 	trackNameMap := make(map[uint16]string)
@@ -55,7 +55,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		// it seems the MIDIs created for ACC all use 0xB0, 0x80, and 0x90 for all channels
 		controlChangeStatus := controlChangeStatusNum // + trackChannel
 
-		// Get all midi events via iterator
+		// get all midi events via iterator
 		iter := curTrack.GetIterator()
 		volumeMIDIEvent := createNewVolumeEvent(curTrack, nonEmphasizedTrackVolume, trackChannel)
 
@@ -83,19 +83,18 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	var newMIDIFilesToBeCreated []*smf.MIDIFile
 	var emphasizedTrackNum = uint16(0)
 	for i := 0; i < len(tracksAtFullVolume); i++ {
-		// Create division
+		// create division
 		division, err := smf.NewDivision(960, smf.NOSMTPE)
 		if err != nil {
 			log.Printf("Failed to create new Division object with error: %v", err)
 		}
 
-		// Create new midi struct
+		// create new midi struct
 		newMIDIFile, err := smf.NewSMF(smf.Format1, *division)
 		if err != nil {
 			log.Printf("Failed to create new MIDI object with error: %v", err)
 		}
 
-		// var fullVolTrack *smf.Track
 		fullVolTrack := tracksAtFullVolume[emphasizedTrackNum]
 		for k := 0; k < len(tracksWithLoweredVolume); k++ {
 			if uint16(k) == emphasizedTrackNum {
@@ -103,7 +102,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 			} else {
 				newMIDIFile.AddTrack(tracksWithLoweredVolume[k])
 			}
-			// createMIDIFile(newTrack, currentTrackNum, tracksWithLoweredVolume, trackName)
 		}
 		newMIDIFilesToBeCreated = append(newMIDIFilesToBeCreated, newMIDIFile)
 		emphasizedTrackNum++
@@ -117,10 +115,11 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	wg.Wait()
 }
 
+// Creates the output .mid files
 func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile, trackNameMap map[uint16]string, midiFileName string) {
 	defer wg.Done()
-	// Save to new midi file
 	var newFileName string
+	// if the track didn't have a name (e.g., a track consisting only of META_EVENT's, we skip the .mid file creation)
 	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
 		newFileName = "./output/" + midiFileName + "_" + trackName + ".mid"
 	} else {
@@ -139,6 +138,7 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 	writer.Flush()
 }
 
+// Parses hex bytes into text
 func grabTrackName(e smf.Event) string {
 	var trackName string
 	for _, c := range e.GetData() {
@@ -148,7 +148,7 @@ func grabTrackName(e smf.Event) string {
 	return trackName
 }
 
-// checks if there are any MIDI events in the track
+// Checks if there are any MIDI events in the track
 func isHeaderTrackAndGetTrackChannel(track *smf.Track) (bool, uint8) {
 	allEvents := track.GetAllEvents()
 	headerEvent := true
@@ -163,6 +163,7 @@ func isHeaderTrackAndGetTrackChannel(track *smf.Track) (bool, uint8) {
 	return headerEvent, chanNum
 }
 
+// Returns a new MIDI smf.Track object with a lowered-volume event
 func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent, currentTrackNum uint16) *smf.Track {
 	allTrackEvents := track.GetAllEvents()
 	// replace volume-setting MIDI event with our lowered-volume event
@@ -177,6 +178,7 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 	return updatedTrack
 }
 
+// Creates a new MIDI_EVENT to set the volume of the track we want to de-emphasize
 func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
 	newVolumeMIDIEvent, err := smf.NewMIDIEvent(0, controlChangeStatusNum, channel, volumeControllerNum, newVolume)
 	if err != nil {
