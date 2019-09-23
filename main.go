@@ -89,8 +89,6 @@ func main() {
 		fPath := filePaths[i]
 		fName := fileNames[i]
 		ext := extensions[i]
-		// fmt.Println(fPath, fName, ext)
-		// log.Fatal()
 		go midi.SplitParts(&wg, fPath, fName, ext)
 	}
 	wg.Wait()

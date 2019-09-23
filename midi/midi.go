@@ -54,7 +54,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		}
 
 		// I would have thought that for channel 3, the controlChangeStatus number should be 0xB3, but
-		// it seems the MIDIs created for ACC all use 0xB0, 0x80, and 0x90 for all channels
+		// it seems the MIDIs created for ACC use 0xB0, 0x80, and 0x90 for all channels
 		controlChangeStatus := controlChangeStatusNum // + trackChannel
 
 		// get all midi events via iterator
@@ -71,8 +71,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 			}
 			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatus && iter.GetValue().GetData()[0] == volumeControllerNum {
-				// fmt.Println(iter.GetValue().String())
-				// fmt.Println(volumeMIDIEvent.String())
 				newTrack = createNewTrack(curTrack, eventPos, volumeMIDIEvent, currentTrackNum)
 				tracksWithLoweredVolume = append(tracksWithLoweredVolume, newTrack)
 				break
@@ -121,7 +119,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile, trackNameMap map[uint16]string, midiFileName string) {
 	defer wg.Done()
 	var newFileName string
-	// if the track didn't have a name (e.g., a track consisting only of META_EVENT's, we skip the .mid file creation)
+	// if the track didn't have a name (e.g., a track consisting only of META_EVENT's), we skip the .mid file creation
 	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
 		newFileName = "./output/" + midiFileName + "_" + trackName + ".mid"
 	} else {
