@@ -41,12 +41,8 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	// if *fileFlagPtr == "" && *dirFlagPtr == "" {
-	// 	flag.Usage()
-	// 	os.Exit(1)
-	// }
 
-	if *fileFlagPtr != "" {
+	if isFlagPassed("f") {
 		dotSplit := strings.Split(*fileFlagPtr, ".")
 
 		if len(dotSplit) == 1 {
@@ -82,7 +78,7 @@ func main() {
 		}
 	}
 
-	if *dirFlagPtr != "" {
+	if isFlagPassed("d") {
 		files, exts := grabFilesInDir(*dirFlagPtr)
 		filePaths = append(filePaths, files...)
 		extensions = append(extensions, exts...)

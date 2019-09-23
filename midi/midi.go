@@ -24,7 +24,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	fullFilePath := midiFilePath + "." + extension
 	file, err := os.Open(midiFilePath + "." + extension)
 	if err != nil {
-		log.Panicf("Failed to open %v with error: %v", fullFilePath, err)
+		log.Fatalf("Failed to open %v with error: %v", fullFilePath, err)
 	}
 	defer file.Close()
 
