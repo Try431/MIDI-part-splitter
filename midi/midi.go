@@ -17,7 +17,8 @@ const volumeControllerNum = uint8(0x07)
 
 var nonEmphasizedTrackVolume = uint8(40)
 
-func SplitParts(midiFilePath string, midiFileName string) {
+func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string) {
+	defer mainWg.Done()
 	file, _ := os.Open(midiFilePath + ".mid")
 	defer file.Close()
 

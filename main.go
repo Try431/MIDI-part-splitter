@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/Try431/MIDI-part-splitter/midi"
 )
@@ -74,24 +75,15 @@ func main() {
 		filePaths = append(filePaths, files...)
 	}
 	fileNames = extractFileNamesFromPaths(filePaths)
-	fmt.Println(fileNames)
-	log.Fatal()
 
-	midiFilePath := strings.Split(*fileFlagPtr, ".")[0]
-	midiFileName := midiFilePath
-	if strings.Contains(midiFilePath, "/") {
-		split := strings.Split(midiFilePath, "/")
-		midiFileName = split[len(split)-1]
+	var wg sync.WaitGroup
+	wg.Add(len(filePaths))
+	for i := 0; i < len(fileNames); i++ {
+		fPath := filePaths[i]
+		fName := fileNames[i]
+		go midi.SplitParts(&wg, fPath, fName)
 	}
-
-	// var wg sync.WaitGroup
-	// wg.Add(len(filePaths))
-	// for num, mFile := range filePaths {
-	// 	go midi.SplitParts(&wg)
-	// }
-	// wg.Wait()
-
-	midi.SplitParts(midiFilePath, midiFileName)
+	wg.Wait()
 }
 
 func grabFilesInDir(dirPath string) []string {
