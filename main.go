@@ -15,8 +15,6 @@ import (
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
 
-var nonEmphasizedTrackVolume = uint8(40)
-
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
@@ -31,7 +29,7 @@ func main() {
 	flag.Parse()
 
 	if isFlagPassed("vol") {
-		nonEmphasizedTrackVolume = uint8(*volFlagPtr)
+		midi.NonEmphasizedTrackVolume = uint8(*volFlagPtr)
 	}
 	var filePaths []string
 	var fileNames []string

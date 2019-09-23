@@ -15,7 +15,8 @@ import (
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
 
-var nonEmphasizedTrackVolume = uint8(40)
+// NonEmphasizedTrackVolume the volume to set the non-emphasized tracks to
+var NonEmphasizedTrackVolume = uint8(40)
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
@@ -57,7 +58,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 
 		// get all midi events via iterator
 		iter := curTrack.GetIterator()
-		volumeMIDIEvent := createNewVolumeEvent(curTrack, nonEmphasizedTrackVolume, trackChannel)
+		volumeMIDIEvent := createNewVolumeEvent(curTrack, NonEmphasizedTrackVolume, trackChannel)
 
 		var newTrack *smf.Track
 
@@ -126,7 +127,7 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 		return
 	}
 
-	fmt.Println("Creating", newFileName)
+	fmt.Println("Creating", newFileName, "with all other tracks set to volume", NonEmphasizedTrackVolume)
 	outputMidi, err := os.Create(newFileName)
 	if err != nil {
 		log.Panicf("Failed to create new MIDI file with error: %v", err)
