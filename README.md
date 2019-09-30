@@ -94,3 +94,4 @@ Creating ./output/cumsanctospiritu_Piano.mid with all other tracks set to volume
 - https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf
 - https://en.wikipedia.org/wiki/MIDI_timecode
 - https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/
+- http://www.music-software-development.com/midi-tutorial.html

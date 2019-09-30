@@ -21,7 +21,7 @@ const volumeControllerNum = uint8(0x07)
 var NonEmphasizedTrackVolume = uint8(40)
 
 // EmphasizedInstrumentNum the number corresponding to the instrument played by the emphasized track
-var EmphasizedInstrumentNum = uint8(52)
+var EmphasizedInstrumentNum = uint8(65)
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
@@ -50,6 +50,13 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		curTrack := midi.GetTrack(currentTrackNum)
 		isHeader, trackChannel := isHeaderTrackAndGetTrackChannel(curTrack)
 
+		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
+		if isHeader {
+			// we're not doing anything with this track, but we still want it to be included in the list
+			tracksAtFullVolume = append(tracksAtFullVolume, curTrack)
+			tracksWithLoweredVolume = append(tracksWithLoweredVolume, curTrack)
+			continue
+		}
 		var eventPos = uint32(0)
 		newInsIter := curTrack.GetIterator()
 		newInstrumentEvent := createNewInstrumentEvent(curTrack, EmphasizedInstrumentNum, trackChannel)
@@ -65,13 +72,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 				break
 			}
 			eventPos++
-		}
-		// tracksAtFullVolume = append(tracksAtFullVolume, curTrack)
-		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
-		if isHeader {
-			// we're not doing anything with this track, but we still want it to be included in the list
-			tracksWithLoweredVolume = append(tracksWithLoweredVolume, curTrack)
-			continue
 		}
 
 		// I would have thought that for channel 3, the controlChangeStatus number should be 0xB3, but
