@@ -13,11 +13,15 @@ import (
 	"github.com/Try431/EasyMIDI/smfio"
 )
 
+const programChangeStatusNum = uint8(0xC0)
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
 
 // NonEmphasizedTrackVolume the volume to set the non-emphasized tracks to
 var NonEmphasizedTrackVolume = uint8(40)
+
+// EmphasizedInstrumentNum the number corresponding to the instrument played by the emphasized track
+var EmphasizedInstrumentNum = uint8(52)
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
@@ -44,9 +48,26 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	// iterating through all tracks in MIDI file
 	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {
 		curTrack := midi.GetTrack(currentTrackNum)
-		tracksAtFullVolume = append(tracksAtFullVolume, curTrack)
-		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
 		isHeader, trackChannel := isHeaderTrackAndGetTrackChannel(curTrack)
+
+		var eventPos = uint32(0)
+		newInsIter := curTrack.GetIterator()
+		newInstrumentEvent := createNewInstrumentEvent(curTrack, EmphasizedInstrumentNum, trackChannel)
+		// fmt.Println(newInstrumentEvent)
+		// replace the instrument on all the full-volume tracks
+		for newInsIter.MoveNext() {
+			if newInsIter.GetValue().GetStatus() == programChangeStatusNum {
+				newInstrumentTrack := createNewTrack(curTrack, eventPos, newInstrumentEvent)
+				// fmt.Println(newInstrumentTrack.GetAllEvents())
+				// fmt.Println(curTrack.GetAllEvents())
+				// os.Exit(1)
+				tracksAtFullVolume = append(tracksAtFullVolume, newInstrumentTrack)
+				break
+			}
+			eventPos++
+		}
+		// tracksAtFullVolume = append(tracksAtFullVolume, curTrack)
+		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
 		if isHeader {
 			// we're not doing anything with this track, but we still want it to be included in the list
 			tracksWithLoweredVolume = append(tracksWithLoweredVolume, curTrack)
@@ -61,9 +82,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		iter := curTrack.GetIterator()
 		volumeMIDIEvent := createNewVolumeEvent(curTrack, NonEmphasizedTrackVolume, trackChannel)
 
-		var newTrack *smf.Track
-
-		var eventPos = uint32(0)
+		eventPos = uint32(0)
 		for iter.MoveNext() {
 			// grab the track name so we can name our output files correctly
 			if iter.GetValue().GetMetaType() == smf.MetaSequenceTrackName {
@@ -71,8 +90,8 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 			}
 			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatus && iter.GetValue().GetData()[0] == volumeControllerNum {
-				newTrack = createNewTrack(curTrack, eventPos, volumeMIDIEvent, currentTrackNum)
-				tracksWithLoweredVolume = append(tracksWithLoweredVolume, newTrack)
+				newVolumeTrack := createNewTrack(curTrack, eventPos, volumeMIDIEvent)
+				tracksWithLoweredVolume = append(tracksWithLoweredVolume, newVolumeTrack)
 				break
 			}
 			eventPos++
@@ -103,6 +122,8 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 				newMIDIFile.AddTrack(tracksWithLoweredVolume[k])
 			}
 		}
+		// fmt.Println(newMIDIFile.GetTrack(1).GetAllEvents())
+		// os.Exit(1)
 		newMIDIFilesToBeCreated = append(newMIDIFilesToBeCreated, newMIDIFile)
 		emphasizedTrackNum++
 	}
@@ -151,6 +172,8 @@ func grabTrackName(e smf.Event) string {
 		char := fmt.Sprintf("%c", c)
 		trackName += char
 	}
+	// replace all spaces with underscores
+	trackName = strings.ReplaceAll(trackName, " ", "_")
 	return trackName
 }
 
@@ -169,10 +192,9 @@ func isHeaderTrackAndGetTrackChannel(track *smf.Track) (bool, uint8) {
 	return headerEvent, chanNum
 }
 
-// Returns a new MIDI smf.Track object with a lowered-volume event
-func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent, currentTrackNum uint16) *smf.Track {
+// Returns a new MIDI smf.Track object with a specific event replaced
+func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent) *smf.Track {
 	allTrackEvents := track.GetAllEvents()
-	// replace volume-setting MIDI event with our lowered-volume event
 	allTrackEvents[replacePos] = newEvent
 
 	// create a new track with our updated array of events
@@ -188,7 +210,15 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
 	newVolumeMIDIEvent, err := smf.NewMIDIEvent(0, controlChangeStatusNum, channel, volumeControllerNum, newVolume)
 	if err != nil {
-		log.Panicf("Failed to create new MIDI event with error: %v", err)
+		log.Panicf("Failed to create new volume MIDI event with error: %v", err)
 	}
 	return newVolumeMIDIEvent
+}
+
+func createNewInstrumentEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
+	newInstrumentEvent, err := smf.NewMIDIEvent(0, programChangeStatusNum, channel, EmphasizedInstrumentNum, 0)
+	if err != nil {
+		log.Panicf("Failed to create new instrument MIDI event with error: %v", err)
+	}
+	return newInstrumentEvent
 }

@@ -2,3 +2,5 @@ MIDI-part-splitter
 .vscode
 *.mid
 *.midi
+notes
+output
