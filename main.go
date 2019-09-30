@@ -68,7 +68,7 @@ func main() {
 				fmt.Println("Filename has more than one \".\" - please fix")
 				os.Exit(1)
 			}
-			midiFilePath := dotSplit[1]
+			midiFilePath := "." + dotSplit[1]
 			filePaths = append(filePaths, midiFilePath)
 		}
 	}
