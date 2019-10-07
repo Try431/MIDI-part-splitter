@@ -95,3 +95,4 @@ Creating ./output/cumsanctospiritu_Piano.mid with all other tracks set to volume
 - https://en.wikipedia.org/wiki/MIDI_timecode
 - https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/
 - http://www.music-software-development.com/midi-tutorial.html
+- https://www.midi.org/specifications/item/gm-level-1-sound-set
