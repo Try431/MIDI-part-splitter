@@ -48,7 +48,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	fmt.Println("total number of tracks", midi.GetTracksNum())
 	// iterating through all tracks in MIDI file
 	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {
-		// fmt.Println("currentTrackNum", currentTrackNum)
 		curTrack := midi.GetTrack(currentTrackNum)
 		isHeader, trackChannel := isHeaderTrackAndGetTrackChannel(curTrack)
 
@@ -87,11 +86,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 			// grab the track name so we can name our output files correctly
 			if iter.GetValue().GetMetaType() == smf.MetaSequenceTrackName {
 				trackNameMap[currentTrackNum] = grabTrackName(iter.GetValue())
-				fmt.Println(grabTrackName(iter.GetValue()), "on channel", trackChannel)
-				if grabTrackName(iter.GetValue()) == "Orchestra" {
-					// fmt.Println(grabTrackName(iter.GetValue()), "on channel", trackChannel)
-					// os.Exit(1)
-				}
 			}
 			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatusNum && iter.GetValue().GetData()[0] == volumeControllerNum {
@@ -106,10 +100,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 
 	var newMIDIFilesToBeCreated []*smf.MIDIFile
 	var emphasizedTrackNum = uint16(0)
-	fmt.Println("num of fullVolTrack", len(tracksAtFullVolume))
-	fmt.Println("num of lowVolTrack", len(tracksWithLoweredVolume))
-	fmt.Println(trackNameMap)
-	fmt.Println(tracksAtFullVolume)
 	for i := 0; i < len(tracksAtFullVolume); i++ {
 		// create division
 		division, err := smf.NewDivision(960, smf.NOSMTPE)
@@ -126,20 +116,11 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		fullVolTrack := tracksAtFullVolume[emphasizedTrackNum]
 		for k := 0; k < len(tracksWithLoweredVolume); k++ {
 			if uint16(k) == emphasizedTrackNum {
-				// fmt.Printf("%v should only have this once\n", i)
-				vol, volCounts, volMap := checkVolumeOfTrack(fullVolTrack)
-				fmt.Printf("%v(%v) should have this HIGH vol %v w/ volCounts %v -- volMap: %v\n", i, k, vol, volCounts, volMap)
 				newMIDIFile.AddTrack(fullVolTrack)
 			} else {
-				vol, volCounts, volMap := checkVolumeOfTrack(tracksWithLoweredVolume[k])
-				fmt.Printf("%v(%v) should have this LOW vol %v w/ volCounts %v -- volMap: %v\n", i, k, vol, volCounts, volMap)
-
-				// checkVolumeOfTrack(tracksWithLoweredVolume[k])
 				newMIDIFile.AddTrack(tracksWithLoweredVolume[k])
 			}
 		}
-		// fmt.Println(newMIDIFile.GetTrack(1).GetAllEvents())
-		// os.Exit(1)
 		newMIDIFilesToBeCreated = append(newMIDIFilesToBeCreated, newMIDIFile)
 		emphasizedTrackNum++
 	}
@@ -152,6 +133,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	wg.Wait()
 }
 
+// This function is primarily for debugging purposes, to check the volume of a track
 func checkVolumeOfTrack(track *smf.Track) (uint8, int, map[int][]byte) {
 	iter := track.GetIterator()
 	var vol uint8
@@ -177,8 +159,6 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
 		newFileName = "./output/" + midiFileName + "_" + trackName + ".mid"
 	} else {
-		fmt.Println("heyyyyyyyy")
-		fmt.Println(fileNum)
 		return
 	}
 
@@ -230,11 +210,7 @@ func isHeaderTrackAndGetTrackChannel(track *smf.Track) (bool, uint8) {
 // Returns a new MIDI smf.Track object with a specific event replaced
 func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent) *smf.Track {
 	allTrackEvents := track.GetAllEvents()
-	// fmt.Printf("Low volume MIDI event EARLIER at position %v: %v\n", replacePos-1, allTrackEvents[replacePos-1].GetData())
-	// fmt.Printf("Low volume MIDI event LATER at position %v: %v\n", replacePos+1, allTrackEvents[replacePos+1].GetData())
-	fmt.Printf("Low volume MIDI event BEFORE at position %v: %v\n", replacePos, allTrackEvents[replacePos].GetData())
 	allTrackEvents[replacePos] = newEvent
-	fmt.Printf("Low volume MIDI event AFTER at position %v: %v\n", replacePos, allTrackEvents[replacePos].GetData())
 	var pos = uint32(0)
 	var volCount = 0
 	for _, event := range allTrackEvents {
@@ -242,7 +218,6 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 		if event.GetStatus() == controlChangeStatusNum && event.GetData()[0] == volumeControllerNum {
 			volCount++
 			if volCount > 1 {
-				fmt.Printf("Deleting this event: %v\n", event.GetData())
 				allTrackEvents = append(allTrackEvents[:pos], allTrackEvents[pos+1:]...)
 			}
 		}
