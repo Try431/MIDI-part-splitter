@@ -29,10 +29,12 @@ Usage of ./MIDI-part-splitter:
   -f string
     	Name of .mid file you wish to parse
     	(e.g., './MIDI-part-splitter -f midi_file.mid')
+  -inst int
+    	Instrument number for emphasized track - see README for instrument list (default 65)
   -vol int
     	[Optional] Volume of de-emphasized voice tracks - must be between 0 and 100 (default 40)
-
 ````
+
 ### Examples 
 Given an `assets` directory containing the following MIDI files:
 

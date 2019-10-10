@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -131,6 +132,18 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		go writeNewMIDIFile(&wg, num, mFile, trackNameMap, midiFileName)
 	}
 	wg.Wait()
+
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(dir)
+
+	cmd := exec.Command("/bin/sh", "convert/convert.sh", "output", "convert/mp3s")
+	_, err = cmd.Output()
+	if err != nil {
+		log.Fatal("Shit broke with error:", err)
+	}
 }
 
 // This function is primarily for debugging purposes, to check the volume of a track
