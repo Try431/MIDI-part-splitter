@@ -12,7 +12,7 @@ $ go build
 ## Goals
 
 - [x] Create emphasized MIDI files
-- [ ] Set emphasized track to a different MIDI instrument
+- [x] Set emphasized track to a different MIDI instrument
 - [ ] Create .mp3 files from MIDI files
 
 
