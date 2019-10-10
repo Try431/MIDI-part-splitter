@@ -21,6 +21,7 @@ func main() {
 
 	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse\n(e.g., '"+binaryName+" -f midi_file.mid')")
 	dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse - will recursively search subdirectories\n(e.g., '"+binaryName+" -d ./dir/to/search/')")
+	instFlagPtr := flag.Int("inst", 65, "Instrument number for emphasized track - see README for instrument list")
 	volFlagPtr := flag.Int("vol", 40, "[Optional] Volume of de-emphasized voice tracks - must be between 0 and 100")
 
 	flag.Parse()
@@ -35,6 +36,10 @@ func main() {
 	if !isFlagPassed("f") && !isFlagPassed("d") {
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	if isFlagPassed("inst") {
+		midi.EmphasizedInstrumentNum = uint8(*instFlagPtr)
 	}
 
 	if isFlagPassed("f") {
