@@ -18,11 +18,17 @@ const programChangeStatusNum = uint8(0xC0)
 const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
 
+// MIDIOutputDirectory the directory where the converted MIDI files will be stored
+var MIDIOutputDirectory = "output"
+
 // NonEmphasizedTrackVolume the volume to set the non-emphasized tracks to
 var NonEmphasizedTrackVolume = uint8(40)
 
 // EmphasizedInstrumentNum the number corresponding to the instrument played by the emphasized track
 var EmphasizedInstrumentNum = uint8(65)
+
+// MP3OutputDirectory the directory where the mp3 files will be stored
+var MP3OutputDirectory = "output/mp3s"
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
@@ -137,7 +143,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	fmt.Println("%%%%%% Beginning MIDI --> WAV --> MP3 conversion %%%%%%")
 	fmt.Println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
-	cmd := exec.Command("/bin/sh", "convert/convert.sh", "output", "convert/mp3s")
+	cmd := exec.Command("/bin/sh", "convert/convert.sh", MIDIOutputDirectory, MP3OutputDirectory)
 	// create a pipe for the output of the script
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
@@ -189,14 +195,14 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 	var newFileName string
 	// if the track didn't have a name (e.g., a track consisting only of META_EVENT's), we skip the .mid file creation
 	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
-		newFileName = "./output/" + midiFileName + "_" + trackName + ".mid"
+		newFileName = "./" + MIDIOutputDirectory + "/" + midiFileName + "_" + trackName + ".mid"
 	} else {
 		return
 	}
 
 	fmt.Println("Creating", newFileName, "with all other tracks set to volume", NonEmphasizedTrackVolume)
 
-	newpath := filepath.Join(".", "output")
+	newpath := filepath.Join(".", MIDIOutputDirectory)
 	err := os.MkdirAll(newpath, os.ModePerm)
 	if err != nil {
 		log.Panicf("Failed to create directory %v with error: %v", newFileName, err)

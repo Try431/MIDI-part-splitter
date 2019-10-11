@@ -13,7 +13,7 @@ $ go build
 
 - [x] Create emphasized MIDI files
 - [x] Set emphasized track to a different MIDI instrument
-- [ ] Create .mp3 files from MIDI files
+- [x] Create .mp3 files from MIDI files
 
 
 ## How to use
@@ -31,8 +31,10 @@ Usage of ./MIDI-part-splitter:
     	(e.g., './MIDI-part-splitter -f midi_file.mid')
   -inst int
     	Instrument number for emphasized track - see README for instrument list (default 65)
+  -o string
+    	Directory where mp3 files will be stored (default "./output/mp3s")
   -vol int
-    	[Optional] Volume of de-emphasized voice tracks - must be between 0 and 100 (default 40)
+    	Volume of de-emphasized voice tracks - must be between 0 and 100 (default 40)
 ````
 
 ### Examples 

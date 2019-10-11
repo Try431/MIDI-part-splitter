@@ -22,12 +22,17 @@ func main() {
 	fileFlagPtr := flag.String("f", "", "Name of .mid file you wish to parse\n(e.g., '"+binaryName+" -f midi_file.mid')")
 	dirFlagPtr := flag.String("d", "", "Directory containing .mid files you wish to parse - will recursively search subdirectories\n(e.g., '"+binaryName+" -d ./dir/to/search/')")
 	instFlagPtr := flag.Int("inst", 65, "Instrument number for emphasized track - see README for instrument list")
-	volFlagPtr := flag.Int("vol", 40, "[Optional] Volume of de-emphasized voice tracks - must be between 0 and 100")
+	volFlagPtr := flag.Int("vol", 40, "Volume of de-emphasized voice tracks - must be between 0 and 100")
+	outFlagPtr := flag.String("o", "./"+midi.MIDIOutputDirectory+"/mp3s", "Directory where mp3 files will be stored")
 
 	flag.Parse()
 
 	if isFlagPassed("vol") {
 		midi.NonEmphasizedTrackVolume = uint8(*volFlagPtr)
+	}
+
+	if isFlagPassed("o") {
+		midi.MP3OutputDirectory = *outFlagPtr
 	}
 	var filePaths []string
 	var fileNames []string
