@@ -133,16 +133,35 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	}
 	wg.Wait()
 
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(dir)
+	fmt.Println("\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+	fmt.Println("%%%%%% Beginning MIDI --> WAV --> MP3 conversion %%%%%%")
+	fmt.Println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
 	cmd := exec.Command("/bin/sh", "convert/convert.sh", "output", "convert/mp3s")
-	_, err = cmd.Output()
+	// create a pipe for the output of the script
+	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatal("Shit broke with error:", err)
+		fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
+		return
+	}
+
+	scanner := bufio.NewScanner(cmdReader)
+	go func() {
+		for scanner.Scan() {
+			fmt.Printf("%s\n", scanner.Text())
+		}
+	}()
+
+	err = cmd.Start()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+		return
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
+		return
 	}
 }
 
