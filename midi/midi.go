@@ -52,7 +52,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	var tracksAtFullVolume []*smf.Track
 	trackNameMap := make(map[uint16]string)
 
-	fmt.Println("total number of tracks", midi.GetTracksNum())
 	// iterating through all tracks in MIDI file
 	for currentTrackNum := uint16(0); currentTrackNum < midi.GetTracksNum(); currentTrackNum++ {
 		curTrack := midi.GetTrack(currentTrackNum)
@@ -61,7 +60,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
 		if isHeader {
 			// we're not doing anything with this track, but we still want it to be included in the list
-			fmt.Println("Header channel", trackChannel)
 			tracksAtFullVolume = append(tracksAtFullVolume, curTrack)
 			tracksWithLoweredVolume = append(tracksWithLoweredVolume, curTrack)
 			continue
