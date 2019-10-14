@@ -1,5 +1,12 @@
 # MIDI-part-splitter
 
+## Dependencies
+Debian/Ubuntu
+```
+sudo apt install -y fluidsynth ffmpeg
+```
+
+
 ## Installation
 Clone repository and build
 
@@ -14,6 +21,7 @@ $ go build
 - [x] Create emphasized MIDI files
 - [x] Set emphasized track to a different MIDI instrument
 - [x] Create .mp3 files from MIDI files
+- [ ] Build a GUI for using the tool
 
 
 ## How to use

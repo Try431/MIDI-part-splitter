@@ -24,6 +24,9 @@ var MIDIOutputDirectory = "output"
 // NonEmphasizedTrackVolume the volume to set the non-emphasized tracks to
 var NonEmphasizedTrackVolume = uint8(40)
 
+// EmphasizedTrackVolume we must set the emphasized track volume to 100 because some MIDI tracks have non-100 default volumes
+const EmphasizedTrackVolume = uint8(100)
+
 // EmphasizedInstrumentNum the number corresponding to the instrument played by the emphasized track
 var EmphasizedInstrumentNum = uint8(65)
 
@@ -67,12 +70,13 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		var eventPos = uint32(0)
 		newInsIter := curTrack.GetIterator()
 		newInstrumentEvent := createNewInstrumentEvent(curTrack, EmphasizedInstrumentNum, trackChannel)
-
+		highVolumeEvent := createNewVolumeEvent(curTrack, EmphasizedTrackVolume, trackChannel)
 		// replace the instrument on all the full-volume tracks
 		for newInsIter.MoveNext() {
 			if newInsIter.GetValue().GetStatus() == programChangeStatusNum {
 				newInstrumentTrack := createNewTrack(curTrack, eventPos, newInstrumentEvent)
-				tracksAtFullVolume = append(tracksAtFullVolume, newInstrumentTrack)
+				newVolAndInstrumentTrack := createNewTrack(newInstrumentTrack, eventPos, highVolumeEvent)
+				tracksAtFullVolume = append(tracksAtFullVolume, newVolAndInstrumentTrack)
 				break
 			}
 			eventPos++
@@ -84,7 +88,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 
 		// get all midi events via iterator
 		iter := curTrack.GetIterator()
-		volumeMIDIEvent := createNewVolumeEvent(curTrack, NonEmphasizedTrackVolume, trackChannel)
+		lowVolumeMIDIEvent := createNewVolumeEvent(curTrack, NonEmphasizedTrackVolume, trackChannel)
 
 		eventPos = uint32(0)
 		for iter.MoveNext() {
@@ -94,7 +98,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 			}
 			// once we've found the MIDI event that's setting the channel volume, replace the old MIDI event with one that has the desired channel volume
 			if iter.GetValue().GetStatus() == controlChangeStatusNum && iter.GetValue().GetData()[0] == volumeControllerNum {
-				newVolumeTrack := createNewTrack(curTrack, eventPos, volumeMIDIEvent)
+				newVolumeTrack := createNewTrack(curTrack, eventPos, lowVolumeMIDIEvent)
 				tracksWithLoweredVolume = append(tracksWithLoweredVolume, newVolumeTrack)
 				break
 			}
@@ -254,6 +258,7 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 		if event.GetStatus() == controlChangeStatusNum && event.GetData()[0] == volumeControllerNum {
 			volCount++
 			if volCount > 1 {
+				// delete track event at pos
 				allTrackEvents = append(allTrackEvents[:pos], allTrackEvents[pos+1:]...)
 			}
 		}
