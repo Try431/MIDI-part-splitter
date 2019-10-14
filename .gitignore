@@ -6,3 +6,4 @@ notes
 output
 *.mp3
 *.wav
+*.wasm
