@@ -38,11 +38,14 @@ Usage of ./MIDI-part-splitter:
     	Name of .mid file you wish to parse
     	(e.g., './MIDI-part-splitter -f midi_file.mid')
   -inst int
-    	Instrument number for emphasized track - see README for instrument list (default 65)
+    	Instrument number for emphasized track - see README for instrument list
+    	(e.g., './MIDI-part-splitter -f midi_file.mid -inst 22)  (default 65)
   -o string
-    	Directory where mp3 files will be stored (default "./output/mp3s")
+    	Directory where mp3 files will be stored
+    	(e.g., './MIDI-part-splitter -f midi_file.mid -o ./dir/to/store/mp3s) (default "./output/mp3s")
   -vol int
-    	Volume of de-emphasized voice tracks - must be between 0 and 100 (default 40)
+    	Volume of de-emphasized voice tracks - must be between 0 and 100
+    	(e.g., './MIDI-part-splitter -f midi_file.mid -vol 30) (default 40)
 ````
 
 ### Examples 
@@ -54,7 +57,7 @@ $ ls assets/
 dominefiliunigenite.mid cumsanctospiritu.mid
 ````
 
-#### Example 1 - Parsing a single MIDI file with SATB split
+#### Example 1 - Parsing a single MIDI file
 
 ````
 $ ./MIDI-part-splitter -f ./assets/dominefiliunigenite.mid
@@ -235,9 +238,9 @@ Creating ./output/cumsanctospiritu_Piano.mid with all other tracks set to volume
 * **Try431** - *main developer* - [Try431](https://github.com/Try431)
 
 ## Helpful References for MIDI Technical Specs
-- https://www.csie.ntu.edu.tw/~r92092/ref/midi/
-- https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf
-- https://en.wikipedia.org/wiki/MIDI_timecode
-- https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/
-- http://www.music-software-development.com/midi-tutorial.html
-- https://www.midi.org/specifications/item/gm-level-1-sound-set
+- [https://www.csie.ntu.edu.tw/~r92092/ref/midi/](https://www.csie.ntu.edu.tw/~r92092/ref/midi/)
+- [https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf](https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf)
+- [https://en.wikipedia.org/wiki/MIDI_timecode](https://en.wikipedia.org/wiki/MIDI_timecode)
+- [https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/](https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/)
+- [http://www.music-software-development.com/midi-tutorial.html](http://www.music-software-development.com/midi-tutorial.html)
+- [https://www.midi.org/specifications/item/gm-level-1-sound-set](https://www.midi.org/specifications/item/gm-level-1-sound-set)
