@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -191,10 +193,38 @@ func checkVolumeOfTrack(track *smf.Track) (uint8, int, map[int][]byte) {
 	return vol, volCounts, volMap
 }
 
+func handleDuplicateTrackNames(trackNameMap map[uint16]string) map[uint16]string {
+	nameMap := make(map[string]int)
+	newTrackNameMap := make(map[uint16]string)
+
+	// we're creating a sorted slice of filenums here because iterating through trackNameMap directly
+	// isn't guaranteed to be in the proper order - this solves the problem of incorrectly numbering a duplicate track name
+	keys := make([]uint16, 0)
+	for k := range trackNameMap {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	for _, k := range keys {
+		trackName := trackNameMap[k]
+		nameMap[trackName]++
+		if nameMap[trackName] > 1 {
+			count := strconv.FormatInt(int64(nameMap[trackName]), 10)
+			newTrackNameMap[k] = trackName + "(" + (count) + ")"
+		} else {
+			newTrackNameMap[k] = trackName
+		}
+
+	}
+
+	return newTrackNameMap
+}
+
 // Creates the output .mid files
 func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile, trackNameMap map[uint16]string, midiFileName string) {
 	defer wg.Done()
 	var newFileName string
+	// fmt.Println("trackNameMap")
+	trackNameMap = handleDuplicateTrackNames(trackNameMap)
 	// if the track didn't have a name (e.g., a track consisting only of META_EVENT's), we skip the .mid file creation
 	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
 		newFileName = "./" + MIDIOutputDirectory + "/" + midiFileName + "_" + trackName + ".mid"
