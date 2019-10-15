@@ -231,7 +231,9 @@ Creating ./output/cumsanctospiritu_Piano.mid with all other tracks set to volume
 
 ## Built With
 
-* [Go](https://golang.org/) - The Go Programming Language
+* [Go](https://golang.org/)
+* [Bash](https://www.gnu.org/software/bash/)
+* [WebAssembly](https://webassembly.org)
 
 ## Author
 
