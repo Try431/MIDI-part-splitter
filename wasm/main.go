@@ -94,15 +94,16 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 func setupRoutes() {
 	http.HandleFunc("/uploaded", uploadFile)
 	fmt.Println("setup routes")
-	http.ListenAndServe(":8080", nil)
+	// http.ListenAndServe(":8080", nil)
 }
 
 func main() {
-	// c := make(chan struct{}, 0)
+	c := make(chan struct{}, 0)
 
 	println("WASM Go Initialized")
 	// register functions
 	registerFunctions()
 	setupRoutes()
-	// <-c
+	<-c
+	fmt.Println("Should never print")
 }
