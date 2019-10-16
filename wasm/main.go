@@ -91,7 +91,12 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
 }
 
+func testHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(w, "testHandlerFunc running")
+}
+
 func setupRoutes() {
+	http.HandleFunc("/", testHandlerFunc)
 	http.HandleFunc("/uploaded", uploadFile)
 	fmt.Println("setup routes")
 	// http.ListenAndServe(":8080", nil)
