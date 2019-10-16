@@ -6,7 +6,8 @@ license that can be found in the LICENSE file.
 -->
 <html>
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Go wasm</title>
   </head>
 
@@ -47,5 +48,14 @@ license that can be found in the LICENSE file.
     </button>
 
     <input type="text" id="result" />
+
+    <form
+    enctype="multipart/form-data"
+    action="http://localhost:8080/upload"
+    method="post"
+  >
+    <input type="file" name="myFile" />
+    <input type="submit" value="upload" />
+  </form>
   </body>
 </html>
