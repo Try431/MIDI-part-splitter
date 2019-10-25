@@ -35,6 +35,10 @@ var EmphasizedInstrumentNum = uint8(65)
 // MP3OutputDirectory the directory where the mp3 files will be stored
 var MP3OutputDirectory = "output/mp3s"
 
+// outputMIDIFilePaths is a slice of the full filepaths of the MIDI files created by writeNewMIDIFile() -- this slice will be accessed by the conversion bash script
+var outputMIDIFilePaths []string
+var filepathLock sync.RWMutex
+
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
 func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string, extension string) {
@@ -159,7 +163,18 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	fmt.Println("%%%%%% Beginning MIDI --> WAV --> MP3 conversion %%%%%%")
 	fmt.Println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
-	cmd := exec.Command("/bin/sh", "convert/convert.sh", MIDIOutputDirectory, MP3OutputDirectory)
+	var convertWg sync.WaitGroup
+	convertWg.Add(len(outputMIDIFilePaths))
+	for _, filepath := range outputMIDIFilePaths {
+		go runConversionScript(&convertWg, filepath)
+	}
+	convertWg.Wait()
+	fmt.Println("All done! 😄")
+}
+
+func runConversionScript(wg *sync.WaitGroup, filepath string) {
+	defer wg.Done()
+	cmd := exec.Command("/bin/sh", "convert/convert_async.sh", filepath, MP3OutputDirectory)
 	// create a pipe for the output of the script
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
@@ -235,7 +250,6 @@ func handleDuplicateTrackNames(trackNameMap map[uint16]string) map[uint16]string
 func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile, trackNameMap map[uint16]string, midiFileName string) {
 	defer wg.Done()
 	var newFileName string
-	// fmt.Println("trackNameMap")
 	trackNameMap = handleDuplicateTrackNames(trackNameMap)
 	// if the track didn't have a name (e.g., a track consisting only of META_EVENT's), we skip the .mid file creation
 	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
@@ -260,6 +274,9 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 	writer := bufio.NewWriter(outputMidi)
 	smfio.Write(writer, newMidiFile)
 	writer.Flush()
+	filepathLock.Lock()
+	outputMIDIFilePaths = append(outputMIDIFilePaths, newFileName)
+	filepathLock.Unlock()
 }
 
 // Parses hex bytes into text
