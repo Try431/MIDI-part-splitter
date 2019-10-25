@@ -72,11 +72,23 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		var eventPos = uint32(0)
 		newInsIter := curTrack.GetIterator()
 		newInstrumentEvent := createNewInstrumentEvent(curTrack, EmphasizedInstrumentNum, trackChannel)
-		highVolumeEvent := createNewVolumeEvent(curTrack, EmphasizedTrackVolume, trackChannel)
+		var newInstrumentTrack *smf.Track
 		// replace the instrument on all the full-volume tracks
 		for newInsIter.MoveNext() {
 			if newInsIter.GetValue().GetStatus() == programChangeStatusNum {
-				newInstrumentTrack := createNewTrack(curTrack, eventPos, newInstrumentEvent)
+				newInstrumentTrack = createNewTrack(curTrack, eventPos, newInstrumentEvent)
+				// newVolAndInstrumentTrack := createNewTrack(newInstrumentTrack, eventPos, highVolumeEvent)
+				// tracksAtFullVolume = append(tracksAtFullVolume, newVolAndInstrumentTrack)
+				break
+			}
+			eventPos++
+		}
+
+		eventPos = uint32(0)
+		highVolIter := newInstrumentTrack.GetIterator()
+		highVolumeEvent := createNewVolumeEvent(curTrack, EmphasizedTrackVolume, trackChannel)
+		for highVolIter.MoveNext() {
+			if highVolIter.GetValue().GetStatus() == controlChangeStatusNum && highVolIter.GetValue().GetData()[0] == volumeControllerNum {
 				newVolAndInstrumentTrack := createNewTrack(newInstrumentTrack, eventPos, highVolumeEvent)
 				tracksAtFullVolume = append(tracksAtFullVolume, newVolAndInstrumentTrack)
 				break
