@@ -99,9 +99,10 @@ func main() {
 		fPath := filePaths[i]
 		fName := fileNames[i]
 		ext := extensions[i]
-		go midi.SplitParts(&wg, fPath, fName, ext)
+		midi.SplitParts(&wg, fPath, fName, ext, isFlagPassed("d"))
 	}
 	wg.Wait()
+	fmt.Println("All done! 😄 Enjoy your MP3 files!")
 }
 
 // Determines if a flag was passed in

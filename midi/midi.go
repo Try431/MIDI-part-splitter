@@ -41,7 +41,8 @@ var filepathLock sync.RWMutex
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
-func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string, extension string) {
+func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string, extension string, dirCrawl bool) {
+	outputMIDIFilePaths = []string{}
 	defer mainWg.Done()
 	fullFilePath := midiFilePath + "." + extension
 	file, err := os.Open(midiFilePath + "." + extension)
@@ -159,9 +160,11 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 	}
 	wg.Wait()
 
-	fmt.Println("\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-	fmt.Println("%%%%%% Beginning MIDI --> WAV --> MP3 conversion %%%%%%")
-	fmt.Println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+	if !dirCrawl {
+		fmt.Println("\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+		fmt.Println("%%%%%% Beginning MIDI --> WAV --> MP3 conversion %%%%%%")
+		fmt.Println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+	}
 
 	var convertWg sync.WaitGroup
 	convertWg.Add(len(outputMIDIFilePaths))
@@ -169,7 +172,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		go runConversionScript(&convertWg, filepath)
 	}
 	convertWg.Wait()
-	fmt.Println("All done! 😄")
 }
 
 func runConversionScript(wg *sync.WaitGroup, filepath string) {
