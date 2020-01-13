@@ -126,6 +126,14 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 
 	}
 
+	/* TODO - create arbitrary file names if no track names already exist */
+
+	// if there are no named tracks
+	if len(trackNameMap) == 0 {
+		fmt.Println("There are no named tracks in this MIDI file - cannot create separate .mid files")
+		os.Exit(1)
+	}
+
 	var newMIDIFilesToBeCreated []*smf.MIDIFile
 	var emphasizedTrackNum = uint16(0)
 	for i := 0; i < len(tracksAtFullVolume); i++ {
@@ -290,6 +298,8 @@ func grabTrackName(e smf.Event) string {
 	}
 	// replace all spaces with underscores
 	trackName = strings.ReplaceAll(trackName, " ", "_")
+	// remove all slashes in track names
+	trackName = strings.ReplaceAll(trackName, "/", "")
 	return trackName
 }
 
