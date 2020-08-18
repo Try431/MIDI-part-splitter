@@ -233,14 +233,14 @@ Creating ./output/cumsanctospiritu_Piano.mid with all other tracks set to volume
 
 * [Go](https://golang.org/)
 * [Bash](https://www.gnu.org/software/bash/)
-* [WebAssembly](https://webassembly.org)
 
 ## Author
 
 * **Try431** - *main developer* - [Try431](https://github.com/Try431)
 
 ## Helpful References for MIDI Technical Specs
-- [https://www.csie.ntu.edu.tw/~r92092/ref/midi/](https://www.csie.ntu.edu.tw/~r92092/ref/midi/)
+- [http://archive.is/awjmh/](http://archive.is/awjmh/) (was originally https://www.csie.ntu.edu.tw/~r92092/ref/midi/ but the link died)
+- [https://www.recordingblogs.com/wiki/midi-meta-messages](https://www.recordingblogs.com/wiki/midi-meta-messages)
 - [https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf](https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf)
 - [https://en.wikipedia.org/wiki/MIDI_timecode](https://en.wikipedia.org/wiki/MIDI_timecode)
 - [https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/](https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/)

@@ -16,23 +16,30 @@ import (
 	"github.com/Try431/EasyMIDI/smfio"
 )
 
+// 0xCn is the code for setting a program change command for channel n
+// a program change is used solely to change between different instruments/presets/patches, depending on the device
 const programChangeStatusNum = uint8(0xC0)
+
+// 0xBn is the code for setting a control change command for channel n
+// a control change can be used to set a variety of settings and functions; in this code, I use it solely for setting main channel volume
 const controlChangeStatusNum = uint8(0xB0)
+
+// 0x07 is the code for a control change number for a channel's main volume
 const volumeControllerNum = uint8(0x07)
 
 // MIDIOutputDirectory the directory where the converted MIDI files will be stored
 var MIDIOutputDirectory = "output"
 
-// NonEmphasizedTrackVolume the volume to set the non-emphasized tracks to
+// NonEmphasizedTrackVolume the volume at which to set the non-emphasized tracks (default 40)
 var NonEmphasizedTrackVolume = uint8(40)
 
 // EmphasizedTrackVolume we must set the emphasized track volume to 100 because some MIDI tracks have non-100 default volumes
 const EmphasizedTrackVolume = uint8(100)
 
-// EmphasizedInstrumentNum the number corresponding to the instrument played by the emphasized track
+// EmphasizedInstrumentNum the number corresponding to the instrument played by the emphasized track (default 65: alto sax)
 var EmphasizedInstrumentNum = uint8(65)
 
-// MP3OutputDirectory the directory where the mp3 files will be stored
+// MP3OutputDirectory the directory where the mp3 files will be stored (default output/mp3s)
 var MP3OutputDirectory = "output/mp3s"
 
 // outputMIDIFilePaths is a slice of the full filepaths of the MIDI files created by writeNewMIDIFile() -- this slice will be accessed by the conversion bash script
@@ -41,11 +48,11 @@ var filepathLock sync.RWMutex
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
-func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string, extension string, dirCrawl bool) {
+func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string, extension string) {
 	outputMIDIFilePaths = []string{}
 	defer mainWg.Done()
 	fullFilePath := midiFilePath + "." + extension
-	file, err := os.Open(midiFilePath + "." + extension)
+	file, err := os.Open(fullFilePath)
 	if err != nil {
 		log.Fatalf("Failed to open %v with error: %v", fullFilePath, err)
 	}
@@ -67,7 +74,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		curTrack := midi.GetTrack(currentTrackNum)
 		isHeader, trackChannel := isHeaderTrackAndGetTrackChannel(curTrack)
 
-		// if there is no MIDI_EVENT in the track, there's nothing to change in this track
+		// if there is no MIDI_EVENT in the track (i.e., is a header track which consists solely of META_EVENTs), there's nothing to change in this track
 		if isHeader {
 			// we're not doing anything with this track, but we still want it to be included in the list
 			tracksAtFullVolume = append(tracksAtFullVolume, curTrack)
@@ -78,17 +85,15 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		newInsIter := curTrack.GetIterator()
 		newInstrumentEvent := createNewInstrumentEvent(curTrack, EmphasizedInstrumentNum, trackChannel)
 		var newInstrumentTrack *smf.Track
-		// replace the instrument on all the full-volume tracks
+		// create a new track with the emphasized instrument
 		for newInsIter.MoveNext() {
 			if newInsIter.GetValue().GetStatus() == programChangeStatusNum {
 				newInstrumentTrack = createNewTrack(curTrack, eventPos, newInstrumentEvent)
-				// newVolAndInstrumentTrack := createNewTrack(newInstrumentTrack, eventPos, highVolumeEvent)
-				// tracksAtFullVolume = append(tracksAtFullVolume, newVolAndInstrumentTrack)
 				break
 			}
 			eventPos++
 		}
-
+		// create an emphasized track with the new instrument and at full volume
 		eventPos = uint32(0)
 		highVolIter := newInstrumentTrack.GetIterator()
 		highVolumeEvent := createNewVolumeEvent(curTrack, EmphasizedTrackVolume, trackChannel)
@@ -167,12 +172,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 		go writeNewMIDIFile(&wg, num, mFile, trackNameMap, midiFileName)
 	}
 	wg.Wait()
-
-	if !dirCrawl {
-		fmt.Println("\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-		fmt.Println("%%%%%% Beginning MIDI --> WAV --> MP3 conversion %%%%%%")
-		fmt.Println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-	}
 
 	var convertWg sync.WaitGroup
 	convertWg.Add(len(outputMIDIFilePaths))
@@ -298,8 +297,8 @@ func grabTrackName(e smf.Event) string {
 	}
 	// replace all spaces with underscores
 	trackName = strings.ReplaceAll(trackName, " ", "_")
-	// remove all slashes in track names
-	trackName = strings.ReplaceAll(trackName, "/", "")
+	// replace all slashes with underscores
+	trackName = strings.ReplaceAll(trackName, "/", "_")
 	return trackName
 }
 

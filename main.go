@@ -93,13 +93,14 @@ func main() {
 	if len(fileNames) != len(filePaths) && len(filePaths) != len(extensions) {
 		log.Panicf("Mismatched number of file names, file paths, and file extensions")
 	}
+
 	var wg sync.WaitGroup
 	wg.Add(len(filePaths))
 	for i := 0; i < len(fileNames); i++ {
 		fPath := filePaths[i]
 		fName := fileNames[i]
 		ext := extensions[i]
-		midi.SplitParts(&wg, fPath, fName, ext, isFlagPassed("d"))
+		midi.SplitParts(&wg, fPath, fName, ext)
 	}
 	wg.Wait()
 	fmt.Println("All done! 😄 Enjoy your MP3 files!")
