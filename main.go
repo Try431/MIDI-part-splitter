@@ -12,6 +12,7 @@ import (
 	"github.com/Try431/MIDI-part-splitter/midi"
 )
 
+// enabling line numbers in logging
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
@@ -24,8 +25,18 @@ func main() {
 	instFlagPtr := flag.Int("inst", 65, "Instrument number for emphasized track - see README for instrument list\n(e.g., '"+binaryName+" -f midi_file.mid -inst 22) ")
 	volFlagPtr := flag.Int("vol", 40, "Volume of de-emphasized voice tracks - must be between 0 and 100\n(e.g., '"+binaryName+" -f midi_file.mid -vol 30)")
 	outFlagPtr := flag.String("o", "./"+midi.MIDIOutputDirectory+"/mp3s", "Directory where mp3 files will be stored\n(e.g., '"+binaryName+" -f midi_file.mid -o ./dir/to/store/mp3s)")
+	quietFlagPtr := flag.Bool("quiet", true, "Whether or not to silence standard output when running (will still allow stderr)")
 
 	flag.Parse()
+
+	if !isFlagPassed("f") && !isFlagPassed("d") {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if isFlagPassed("quiet") {
+		midi.SilenceOutput = bool(*quietFlagPtr)
+	}
 
 	if isFlagPassed("vol") {
 		midi.NonEmphasizedTrackVolume = uint8(*volFlagPtr)
@@ -38,11 +49,6 @@ func main() {
 	var fileNames []string
 	var extensions []string
 
-	if !isFlagPassed("f") && !isFlagPassed("d") {
-		flag.Usage()
-		os.Exit(1)
-	}
-
 	if isFlagPassed("inst") {
 		midi.EmphasizedInstrumentNum = uint8(*instFlagPtr)
 	}
@@ -51,13 +57,11 @@ func main() {
 		dotSplit := strings.Split(*fileFlagPtr, ".")
 
 		if len(dotSplit) == 1 {
-			fmt.Println("Please supply name of file - do not forget file extension")
-			os.Exit(1)
+			log.Panicf("Please supply name of file - do not forget file extension")
 		}
 
 		if strings.ToLower(dotSplit[len(dotSplit)-1]) != "mid" && strings.ToLower(dotSplit[len(dotSplit)-1]) != "midi" {
-			fmt.Println("Only .mid and .midi files supported")
-			os.Exit(1)
+			log.Panicf("Only .mid and .midi files supported")
 		} else {
 			extensions = append(extensions, strings.ToLower(dotSplit[len(dotSplit)-1]))
 		}
@@ -67,16 +71,14 @@ func main() {
 			filePaths = append(filePaths, midiFilePath)
 		} else if !strings.HasPrefix(*fileFlagPtr, "./") {
 			if len(dotSplit) != 2 {
-				fmt.Println("Filename has more than one \".\" - please fix")
-				os.Exit(1)
+				log.Panicf("Filename has more than one \".\" - please fix")
 			}
 			midiFilePath := dotSplit[0]
 			filePaths = append(filePaths, midiFilePath)
 
 		} else if strings.HasPrefix(*fileFlagPtr, "./") {
 			if len(dotSplit) != 3 {
-				fmt.Println("Filename has more than one \".\" - please fix")
-				os.Exit(1)
+				log.Panicf("Filename has more than one \".\" - please fix")
 			}
 			midiFilePath := "." + dotSplit[1]
 			filePaths = append(filePaths, midiFilePath)
@@ -94,6 +96,7 @@ func main() {
 		log.Panicf("Mismatched number of file names, file paths, and file extensions")
 	}
 
+	fmt.Println("Starting split & conversion process...")
 	var wg sync.WaitGroup
 	wg.Add(len(filePaths))
 	for i := 0; i < len(fileNames); i++ {

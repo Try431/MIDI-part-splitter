@@ -42,9 +42,18 @@ var EmphasizedInstrumentNum = uint8(65)
 // MP3OutputDirectory the directory where the mp3 files will be stored (default output/mp3s)
 var MP3OutputDirectory = "output/mp3s"
 
+// SilenceOutput when true, effectively stops all output to stdout
+var SilenceOutput = false
+
 // outputMIDIFilePaths is a slice of the full filepaths of the MIDI files created by writeNewMIDIFile() -- this slice will be accessed by the conversion bash script
 var outputMIDIFilePaths []string
 var filepathLock sync.RWMutex
+
+func printWrapper(toPrint string) {
+	if !SilenceOutput {
+		fmt.Println(toPrint)
+	}
+}
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
@@ -183,7 +192,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string
 
 func runConversionScript(wg *sync.WaitGroup, filepath string) {
 	defer wg.Done()
-	cmd := exec.Command("/bin/sh", "convert/convert_async.sh", filepath, MP3OutputDirectory)
+	cmd := exec.Command("/bin/bash", "convert/convert_async.sh", filepath, MP3OutputDirectory, strconv.FormatBool(SilenceOutput))
 	// create a pipe for the output of the script
 	cmdReader, err := cmd.StdoutPipe()
 	if err != nil {
@@ -267,7 +276,7 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 		return
 	}
 
-	fmt.Println("Creating", newFileName, "with all other tracks set to volume", NonEmphasizedTrackVolume)
+	printWrapper(fmt.Sprint("Creating ", newFileName, " with all other tracks set to volume ", NonEmphasizedTrackVolume))
 
 	newpath := filepath.Join(".", MIDIOutputDirectory)
 	err := os.MkdirAll(newpath, os.ModePerm)
