@@ -23,14 +23,13 @@ def remove_duplicates(text_box):
     return text_box
 
 def add_file_to_text_box(text_box, paths):
-    for p in paths:
-        if os.path.isdir(p):
-            paths_in_dir = os.listdir(p)
-            print(paths_in_dir)
-            add_file_to_text_box(text_box, paths_in_dir)
-        elif os.path.isfile(p):
+    for path in paths:
+        if os.path.isdir(path):
+            files_in_dir = map(lambda p: os.path.join(path, p), os.listdir(path))
+            add_file_to_text_box(text_box, files_in_dir)
+        elif os.path.isfile(path):
             text_box.config(state="normal")
-            text_box.insert(tk.END, p+"\n")
+            text_box.insert(tk.END, path+"\n")
             remove_duplicates(text_box)
             text_box.config(state="disabled")
 
@@ -42,18 +41,8 @@ def select_file(text_box, event):
 def select_dir(text_box, event):
     directory = askdirectory()
     if directory:
-        files_in_dir = os.listdir(directory)
-        print(files_in_dir)
+        files_in_dir = map(lambda p: os.path.join(directory, p), os.listdir(directory))
         add_file_to_text_box(text_box, files_in_dir)
-    # for f in files_in_dir:
-    #     if os.path.isdir(f):
-    #         select_dir(text_box, event)
-    #     elif os.path.isfile(f):
-    #         path = os.path.join(directory, f)
-    #         text_box.config(state="normal")
-    #         text_box.insert(tk.END, path+"\n")
-    #         text_box.config(state="disabled")
-            
 
 def main():
     window = tk.Tk()
