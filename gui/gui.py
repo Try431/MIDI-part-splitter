@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import tkinter as tk
-from tkinter.filedialog import *
+import tkinter.filedialog as tkfd
 import subprocess
 import os
 from functools import partial
-from re import match
+import re
 
 """
 TODO:
@@ -19,7 +19,7 @@ class MIDIConvertGUI(object):
         self.label = tk.Label(text="MIDI File Conversion")
         self.label.pack()
         self.button_frame = tk.Frame(parent)
-        self.button_frame.pack(side=TOP)
+        self.button_frame.pack(side=tk.TOP)
         self.files_to_convert_text_box = tk.Text(
             width=150
         )
@@ -58,63 +58,73 @@ class MIDIConvertGUI(object):
             insertbackground="white"
         )
         
-        def remove_duplicates(text_box):
-            line_set = set()
-            current_lines = text_box.get('1.0', 'end-1c').splitlines()
-            for line in current_lines:
-                line_set.add(line)
-                
-            if len(current_lines) == len(line_set):
-                return
+        
+    def select_file(self, event):
+        filename = tkfd.askopenfilename()
+        if filename:
+            self.add_file_to_text_box([filename])
             
-            i = 1
-            text_box.config(state="normal")
-            text_box.delete("1.0", END)
-            for line in line_set:
-                text_box.insert(f"{i}.0", line+"\n")
-                i+=1
-            text_box.config(state="disabled")
+    def select_dir(self, event):
+        directory = tkfd.askdirectory()
+        if directory:
+            files_in_dir = map(lambda p: os.path.join(directory, p), os.listdir(directory))
+            self.add_file_to_text_box(files_in_dir)
+            
+            
+    def remove_duplicates(self):
+        line_set = set()
+        current_lines = self.files_to_convert_text_box.get('1.0', 'end-1c').splitlines()
+        for line in current_lines:
+            line_set.add(line)
+            
+        if len(current_lines) == len(line_set):
+            return
+        
+        i = 1
+        self.files_to_convert_text_box.config(state="normal")
+        self.files_to_convert_text_box.delete("1.0", tk.END)
+        for line in line_set:
+            self.files_to_convert_text_box.insert(f"{i}.0", line+"\n")
+            i+=1
+        self.files_to_convert_text_box.config(state="disabled")
 
-        def add_file_to_text_box(text_box, log_box, paths):
-            for path in paths:
-                if os.path.isdir(path):
-                    files_in_dir = map(lambda p: os.path.join(path, p), os.listdir(path))
-                    add_file_to_text_box(text_box, log_box, files_in_dir)
-                elif os.path.isfile(path):
-                    full_path, filename = os.path.split(path)
-                    if not re.match("mid*", filename.partition(".")[2]):
-                        log_box.insert(tk.END, f"{path} does not point to a MIDI file\n")
-                    else:
-                        text_box.config(state="normal")
-                        text_box.insert(tk.END, path+"\n")
-                        remove_duplicates(text_box)
-                        text_box.config(state="disabled")
+    def add_file_to_text_box(self, paths):
+        for path in paths:
+            if os.path.isdir(path):
+                files_in_dir = map(lambda p: os.path.join(path, p), os.listdir(path))
+                self.add_file_to_text_box(files_in_dir)
+            elif os.path.isfile(path):
+                full_path, filename = os.path.split(path)
+                if not re.match("mid*", filename.partition(".")[2]):
+                    self.log_box.insert(tk.END, f"{path} does not point to a MIDI file\n")
+                else:
+                    self.files_to_convert_text_box.config(state="normal")
+                    self.files_to_convert_text_box.insert(tk.END, path+"\n")
+                    self.remove_duplicates()
+                    self.files_to_convert_text_box.config(state="disabled")
 
-        def select_file(text_box, log_box, event):
-            filename = askopenfilename()
-            if filename:
-                add_file_to_text_box(text_box, log_box, [filename])
+        
+            
 
-        def select_dir(text_box, log_box, event):
-            directory = askdirectory()
-            if directory:
-                files_in_dir = map(lambda p: os.path.join(directory, p), os.listdir(directory))
-                add_file_to_text_box(text_box, log_box, files_in_dir)
-                
-        def begin_conversion(text_box, log_box, event):
-            lines_to_convert = text_box.get('1.0', 'end-1c').splitlines()
-            # for line in lines_to_convert:
+            
+    # def begin_conversion(text_box, log_box, event):
+    #     lines_to_convert = text_box.get('1.0', 'end-1c').splitlines()
+    #     # for line in lines_to_convert:
 
 
 if __name__ == "__main__":
     root = tk.Tk()
     gui = MIDIConvertGUI(root)
-    gui.choose_file_btn.pack(side=LEFT)
-    gui.choose_dir_btn.pack(side=LEFT)
-    gui.start_conversion_btn.pack(side=RIGHT)
-    gui.clear_all_btn.pack(side=BOTTOM)
+    gui.choose_file_btn.pack(side=tk.LEFT)
+    gui.choose_dir_btn.pack(side=tk.LEFT)
+    gui.start_conversion_btn.pack(side=tk.RIGHT)
+    gui.clear_all_btn.pack(side=tk.BOTTOM)
     gui.files_to_convert_text_box.pack()
     gui.log_box.pack()
+    
+    gui.choose_file_btn.bind("<Button-1>", gui.select_file)
+    gui.choose_dir_btn.bind("<Button-1>", gui.select_dir)
+    
     root.mainloop()
     
     # Old code to convert
