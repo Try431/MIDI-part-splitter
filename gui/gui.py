@@ -23,7 +23,15 @@ class MIDIConvertGUI(object):
         self.button_frame = tk.Frame(parent)
         self.button_frame.pack(side=tk.TOP)
         self.files_to_convert_text_box = tksc.ScrolledText(
-            width=150
+            width=150,
+            height=15
+        )
+        self.log_box = tksc.ScrolledText(
+            width=100,
+            height=10,
+            bg="black", 
+            fg="white", 
+            insertbackground="white"
         )
         self.choose_file_btn = tk.Button(
             self.button_frame,
@@ -52,12 +60,6 @@ class MIDIConvertGUI(object):
             width=15,
             height=2,
             bg="red"
-        )
-        self.log_box = tksc.ScrolledText(
-            width=100, 
-            bg="black", 
-            fg="white", 
-            insertbackground="white"
         )
         
         
@@ -118,13 +120,9 @@ class MIDIConvertGUI(object):
                         self.log_box.insert(tk.END, f"The file {filename} is already listed\n")
                         self.log_box.config(state="disabled")
 
-        
-            
-
-            
-    # def begin_conversion(text_box, log_box, event):
-    #     lines_to_convert = text_box.get('1.0', 'end-1c').splitlines()
-    #     # for line in lines_to_convert:
+    def begin_conversion(self, event):
+        lines_to_convert = self.files_to_convert_text_box.get('1.0', 'end-1c').splitlines()
+        # for line in lines_to_convert:
 
 
 if __name__ == "__main__":
@@ -140,18 +138,12 @@ if __name__ == "__main__":
     gui.choose_file_btn.bind("<Button-1>", gui.select_file)
     gui.choose_dir_btn.bind("<Button-1>", gui.select_dir)
     gui.clear_all_btn.bind("<Button-1>", gui.clear_all_entries)
+    gui.start_conversion_btn.bind("<Button-1>", gui.begin_conversion)
     
     gui.files_to_convert_text_box.config(state="disabled")
     gui.log_box.config(state="disabled")
     root.mainloop()
     
-    # Old code to convert
-    
-    # start_conversion_btn.bind("<Button-1>", partial(begin_conversion, files_to_convert_text_box))
-    # start_conversion_btn.pack()
-    
-# pp = pprint.PrettyPrinter(indent=2)
-# Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
 
 # a = subprocess.run(['./MIDI-part-splitter', '-f', filename], capture_output=True)
 # output = a.stdout

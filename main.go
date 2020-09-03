@@ -26,6 +26,7 @@ func main() {
 	volFlagPtr := flag.Int("vol", 40, "Volume of de-emphasized voice tracks - must be between 0 and 100\n(e.g., '"+binaryName+" -f midi_file.mid -vol 30)")
 	outFlagPtr := flag.String("o", "./"+midi.MIDIOutputDirectory+"/mp3s", "Directory where mp3 files will be stored\n(e.g., '"+binaryName+" -f midi_file.mid -o ./dir/to/store/mp3s)")
 	quietFlagPtr := flag.Bool("quiet", true, "Whether or not to silence standard output when running (will still allow stderr)")
+	listFlagPtr := flag.String("l", "", "List of comma-separated files")
 
 	flag.Parse()
 
@@ -36,6 +37,14 @@ func main() {
 
 	if isFlagPassed("quiet") {
 		midi.SilenceOutput = bool(*quietFlagPtr)
+	}
+
+	if isFlagPassed("l") {
+		files := strings.Split(*listFlagPtr, ",")
+		for _, f := range files {
+			// TODO - create helper function collectFilePaths that does what is done in the isFlagPassed("f") func, and use here and in that func to reduce code reuse
+			// Also, make sure that calling without a ./ or ../ prefix still works, as well as absolute filepaths
+		}
 	}
 
 	if isFlagPassed("vol") {
