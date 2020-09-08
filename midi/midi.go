@@ -70,7 +70,7 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string) {
 	// read and save midi to smf.MIDIFile struct
 	midi, err := smfio.Read(bufio.NewReader(file))
 	if err != nil {
-		log.Panicf("Failed to read MIDI file %v with error: %v", file, err)
+		log.Fatalf("Failed to read MIDI file %v with error: %v", file, err)
 	}
 
 	// collecting record of all tracks in the MIDI file so we can construct our new MIDI files in the same track order
@@ -278,11 +278,11 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 	newpath := filepath.Join(".", MIDIOutputDirectory)
 	err := os.MkdirAll(newpath, os.ModePerm)
 	if err != nil {
-		log.Panicf("Failed to create directory %v with error: %v", newFileName, err)
+		log.Fatalf("Failed to create directory %v with error: %v", newFileName, err)
 	}
 	outputMidi, err := os.Create(newFileName)
 	if err != nil {
-		log.Panicf("Failed to create new MIDI file with error: %v", err)
+		log.Fatalf("Failed to create new MIDI file with error: %v", err)
 	}
 	defer outputMidi.Close()
 
@@ -344,7 +344,7 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 	// create a new track with our updated array of events
 	updatedTrack, err := smf.TrackFromArray(allTrackEvents)
 	if err != nil {
-		log.Panicf("Failed to create new track from event list with error: %v", err)
+		log.Fatalf("Failed to create new track from event list with error: %v", err)
 	}
 
 	return updatedTrack
@@ -354,7 +354,7 @@ func createNewTrack(track *smf.Track, replacePos uint32, newEvent *smf.MIDIEvent
 func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
 	newVolumeMIDIEvent, err := smf.NewMIDIEvent(0, controlChangeStatusNum, channel, volumeControllerNum, newVolume)
 	if err != nil {
-		log.Panicf("Failed to create new volume MIDI event with error: %v", err)
+		log.Fatalf("Failed to create new volume MIDI event with error: %v", err)
 	}
 	return newVolumeMIDIEvent
 }
@@ -362,7 +362,7 @@ func createNewVolumeEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MID
 func createNewInstrumentEvent(t *smf.Track, newVolume uint8, channel uint8) *smf.MIDIEvent {
 	newInstrumentEvent, err := smf.NewMIDIEvent(0, programChangeStatusNum, channel, EmphasizedInstrumentNum, 0)
 	if err != nil {
-		log.Panicf("Failed to create new instrument MIDI event with error: %v", err)
+		log.Fatalf("Failed to create new instrument MIDI event with error: %v", err)
 	}
 	return newInstrumentEvent
 }
