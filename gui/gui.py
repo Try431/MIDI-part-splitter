@@ -4,9 +4,11 @@ import tkinter.filedialog as tkfd
 import tkinter.messagebox as tkmb
 import tkinter.scrolledtext as tksc
 import subprocess
+from subprocess import PIPE
 import os
 from functools import partial
 import re
+import threading
 
 """
 TODO:
@@ -108,7 +110,7 @@ class MIDIConvertGUI(object):
             elif os.path.isfile(path):
                 _, filename = os.path.split(path)
                 if not re.match("mid*", filename.partition(".")[2]):
-                    self.log_box.insert(tk.END, f"{path} does not point to a MIDI file\n")
+                    self.insert_into_log(f"{path} does not point to a MIDI file")
                 else:
                     current_lines = self.files_to_convert_text_box.get('1.0', 'end-1c').splitlines()
                     if path not in current_lines:
@@ -116,14 +118,33 @@ class MIDIConvertGUI(object):
                         self.files_to_convert_text_box.insert(tk.END, path+"\n")
                         self.files_to_convert_text_box.config(state="disabled")
                     else:
-                        self.log_box.config(state="normal")
-                        self.log_box.insert(tk.END, f"The file {filename} is already listed\n")
-                        self.log_box.config(state="disabled")
+                        self.insert_into_log(f"The file {filename} is already listed")
+    
+    def insert_into_log(self, output):
+        self.log_box.config(state="normal")
+        self.log_box.insert(tk.END, f"{output.strip()}\n")
+        self.log_box.yview(tk.END)
+        self.log_box.config(state="disabled")
 
     def begin_conversion(self, event):
+        def output_to_log(proc):
+            while True:
+                output = proc.stdout.readline()
+                if proc.poll() is not None:
+                    break
+                if output:
+                    self.insert_into_log(output)
+            rc = proc.poll()
+            
         lines_to_convert = self.files_to_convert_text_box.get('1.0', 'end-1c').splitlines()
-        # for line in lines_to_convert:
-
+        comma_separated_files = ",".join(lines_to_convert)
+        if comma_separated_files:
+            proc = subprocess.Popen(['./MIDI-part-splitter', '-l', comma_separated_files], stdout=PIPE, bufsize=1, universal_newlines=True)
+            t = threading.Thread(target=output_to_log, args=(proc,))
+            t.start()
+        else:
+            self.insert_into_log("There are no files to convert")
+        
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -144,12 +165,3 @@ if __name__ == "__main__":
     gui.log_box.config(state="disabled")
     root.mainloop()
     
-
-# a = subprocess.run(['./MIDI-part-splitter', '-f', filename], capture_output=True)
-# output = a.stdout
-# args = a.args
-
-# output_split = output.decode().split('\n')
-# print()
-# print(output_split)
-# print(args)
