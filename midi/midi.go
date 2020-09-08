@@ -57,13 +57,13 @@ func printWrapper(toPrint string) {
 
 // SplitParts splits the MIDI file into different voice parts and creates new MIDI files
 // with those voice parts emphasized
-func SplitParts(mainWg *sync.WaitGroup, midiFilePath string, midiFileName string, extension string) {
+func SplitParts(mainWg *sync.WaitGroup, midiFilePath string) {
 	outputMIDIFilePaths = []string{}
 	defer mainWg.Done()
-	fullFilePath := midiFilePath + "." + extension
-	file, err := os.Open(fullFilePath)
+	file, err := os.Open(midiFilePath)
+	midiFileName := strings.TrimSuffix(filepath.Base(midiFilePath), filepath.Ext(midiFilePath))
 	if err != nil {
-		log.Fatalf("Failed to open %v with error: %v", fullFilePath, err)
+		log.Fatalf("Failed to open %v with error: %v", midiFilePath, err)
 	}
 	defer file.Close()
 
