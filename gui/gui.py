@@ -6,16 +6,12 @@ import tkinter.scrolledtext as tksc
 import subprocess
 from subprocess import PIPE
 import os
-from functools import partial
 import re
 import threading
 
 """
 TODO:
-- Add confirmation dialog for clear_all button
 - Create separate frame for clear_all button, so that it's harder to click accidentally
-- Associate functions with buttons (referencing class attributes instead of parameters)
-- 
 """
 class MIDIConvertGUI(object):
     def __init__(self, parent):
