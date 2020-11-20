@@ -21,7 +21,9 @@ $ go build
 - [x] Create emphasized MIDI files
 - [x] Set emphasized track to a different MIDI instrument
 - [x] Create .mp3 files from MIDI files
-- [ ] Build a GUI for using the tool
+- [x] Start building a GUI for the tool
+- [ ] Consolidate dependencies for easy packaging
+- [ ] Finish GUI, and be able to distribute easily
 
 
 ## How to use
@@ -40,9 +42,13 @@ Usage of ./MIDI-part-splitter:
   -inst int
     	Instrument number for emphasized track - see README for instrument list
     	(e.g., './MIDI-part-splitter -f midi_file.mid -inst 22)  (default 65)
+  -l string
+    	List of comma-separated MIDI files to be parsed
   -o string
     	Directory where mp3 files will be stored
     	(e.g., './MIDI-part-splitter -f midi_file.mid -o ./dir/to/store/mp3s) (default "./output/mp3s")
+  -quiet
+    	Whether or not to silence standard output when running (will still allow stderr) (default true)
   -vol int
     	Volume of de-emphasized voice tracks - must be between 0 and 100
     	(e.g., './MIDI-part-splitter -f midi_file.mid -vol 30) (default 40)
@@ -66,6 +72,10 @@ Creating ./output/dominefiliunigenite_Alto.mid with all other tracks set to volu
 Creating ./output/dominefiliunigenite_Tenor.mid with all other tracks set to volume 40
 Creating ./output/dominefiliunigenite_Bass.mid with all other tracks set to volume 40
 Creating ./output/dominefiliunigenite_Piano.mid with all other tracks set to volume 40
+Converting './output/dominefiliunigenite_Soprano.mid' to an MP3 file in 'output/mp3s'
+Converting './output/dominefiliunigenite_Alto.mid' to an MP3 file in 'output/mp3s'
+...
+All done! 😄 Enjoy your MP3 files!
 ````
 
 #### Example 2 - Parsing a single MIDI file, and setting the volume of the non-emphasized tracks
@@ -77,6 +87,10 @@ Creating ./output/dominefiliunigenite_Alto.mid with all other tracks set to volu
 Creating ./output/dominefiliunigenite_Tenor.mid with all other tracks set to volume 20
 Creating ./output/dominefiliunigenite_Bass.mid with all other tracks set to volume 20
 Creating ./output/dominefiliunigenite_Piano.mid with all other tracks set to volume 20
+Converting './output/dominefiliunigenite_Soprano.mid' to an MP3 file in 'output/mp3s'
+Converting './output/dominefiliunigenite_Alto.mid' to an MP3 file in 'output/mp3s'
+...
+All done! 😄 Enjoy your MP3 files!
 ````
 
 #### Example 3 - Parsing all MIDI files in a directory
@@ -93,6 +107,31 @@ Creating ./output/cumsanctospiritu_Alto.mid with all other tracks set to volume 
 Creating ./output/cumsanctospiritu_Tenor.mid with all other tracks set to volume 40
 Creating ./output/cumsanctospiritu_Bass.mid with all other tracks set to volume 40
 Creating ./output/cumsanctospiritu_Piano.mid with all other tracks set to volume 40
+Converting './output/dominefiliunigenite_Soprano.mid' to an MP3 file in 'output/mp3s'
+...
+Converting './output/cumsanctospiritu_Soprano.mid' to an MP3 file in 'output/mp3s'
+...
+All done! 😄 Enjoy your MP3 files!
+````
+
+#### Example 4 - Sending the output mp3s to a specific folder, and quieting stdout
+````
+$ ./MIDI-part-splitter -f assets/dominefiliunigenite.mid -o ../created_mp3s -quiet
+Starting split & conversion process...
+All done! 😄 Enjoy your MP3 files!
+````
+
+#### Example 5 - Passing in a list of comma-separated MIDI files to parse
+````
+$ ./MIDI-part-splitter -l assets/dominefiliunigenite.mid,assets/dominefiliunigenite.mid
+Starting split & conversion process...
+Creating ./output/dominefiliunigenite_Soprano.mid with all other tracks set to volume 40
+Creating ./output/dominefiliunigenite_Alto.mid with all other tracks set to volume 40
+...
+Creating ./output/cumsanctospiritu_Piano.mid with all other tracks set to volume 40
+Converting './output/dominefiliunigenite_Soprano.mid' to an MP3 file in 'output/mp3s'
+...
+All done! 😄 Enjoy your MP3 files!
 ````
 
 ## Instrument List
