@@ -7,3 +7,4 @@ output
 *.mp3
 *.wav
 test_*
+.env
