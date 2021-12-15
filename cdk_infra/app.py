@@ -1,3 +1,6 @@
+import sys
+import os
+import subprocess
 from shutil import make_archive
 from aws_cdk import (
     aws_lambda as lambda_,
@@ -40,21 +43,24 @@ class MIDIStack(core.Stack):
         #                                 auto_delete_objects=False)
 
         # MIDI to MP3 Lambda
-        # subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas==1.3.4", "--target", "raw_df_lambda/libs/"])
+        # subprocess.check_call([sys.executable, "-m", "pip", "install", "fluidsynth==0.2", "pydub==0.24.1", "midi2audio==0.1.1", "--target", "midi_to_mp3_lambda/libs/"])
 
         # this is packaging up the lambda's external dependenices into a .zip file
-        make_archive("midi_to_mp3_lambda/midi_to_mp3_lambda",
-                     'zip', "./midi_to_mp3_lambda/")
+        # make_archive("midi_to_mp3_lambda/midi_to_mp3_lambda",
+        #              'zip', "./midi_to_mp3_lambda/")
+        
+        lambda_code = lambda_.DockerImageCode.from_image_asset(directory='./midi_to_mp3_lambda/',
+                                                               file="Dockerfile",
+                                                               build_args={"AWS_ACCESS_KEY_ID": os.environ.get("AWS_ACCESS_KEY_ID"),
+                                                                           "AWS_SECRET_ACCESS_KEY": os.environ.get("AWS_SECRET_ACCESS_KEY")
+                                                                           })
 
-        midi_to_mp3_lambda = lambda_.Function(self, id="midi_to_mp3_lambda",
-                                         runtime=lambda_.Runtime.PYTHON_3_8,
+        midi_to_mp3_lambda = lambda_.DockerImageFunction(self, id="midi_to_mp3_lambda",
                                          role=lambda_role,
                                          function_name="midi-to-mp3",
                                          memory_size=1024,
                                          timeout=core.Duration.minutes(15),
-                                         handler="midi_to_mp3_lambda.handler",
-                                         code=lambda_.Code.from_asset(
-                                             "./midi_to_mp3_lambda/midi_to_mp3_lambda.zip")
+                                         code=lambda_code
                                          )
 
 
@@ -62,3 +68,6 @@ app = core.App()
 aws_account = core.Environment(account="463511281384", region="us-east-2")
 MIDIStack(app, "MIDI-Part-Splitter", env=aws_account)
 app.synth()
+
+if __name__ == '__main__':
+    print(os.path.abspath('./midi_to_mp3_lambda/'))

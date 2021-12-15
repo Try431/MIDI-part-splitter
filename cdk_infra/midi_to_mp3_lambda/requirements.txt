@@ -1,0 +1,4 @@
+fluidsynth==0.2
+pydub==0.24.1
+midi2audio==0.1.1
+boto3

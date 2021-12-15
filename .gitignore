@@ -8,3 +8,4 @@ output
 *.wav
 test_*
 .env
+cdk.out

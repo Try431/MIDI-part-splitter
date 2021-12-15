@@ -1,5 +1,5 @@
-from midi2audio import FluidSynth
-from pydub import AudioSegment
+import midi2audio
+import pydub
 from os import path, remove
 import boto3
 
@@ -23,10 +23,10 @@ def grab_midi_from_s3(key=None):
     print(resp)
     
 def convert_midi_to_mp3():
-    fs = FluidSynth(sound_font=FLUIDSYNTH_FILE_LOC)
+    fs = midi2audio.FluidSynth(sound_font=FLUIDSYNTH_FILE_LOC)
     fs.midi_to_audio(midi_file="/tmp/Los_Peces_Bass_file.mid", audio_file=WAV_TEMP_FILE_LOC)
 
-    wav_audio = AudioSegment.from_file(WAV_TEMP_FILE_LOC, format="wav")
+    wav_audio = pydub.AudioSegment.from_file(WAV_TEMP_FILE_LOC, format="wav")
     wav_audio.export(MP3_OUTPUT_FILE_LOC, format="mp3")
 
     if path.exists(WAV_TEMP_FILE_LOC):
