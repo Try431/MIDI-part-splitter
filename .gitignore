@@ -7,3 +7,5 @@ output
 *.mp3
 *.wav
 test_*
+.env
+cdk.out
