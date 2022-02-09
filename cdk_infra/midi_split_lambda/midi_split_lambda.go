@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -22,7 +23,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-const MIDI_FILE_DROPOFF_BUCKET = "midi-file-dropoff"
+const (
+	MIDI_FILE_DROPOFF_BUCKET    = "midi-file-dropoff"
+	COMPONENT_MIDI_FILES_BUCKET = "component-midi-files"
+)
 
 // 0xCn is the code for setting a program change command for channel n
 // a program change is used solely to change between different instruments/presets/patches, depending on the device
@@ -36,7 +40,7 @@ const controlChangeStatusNum = uint8(0xB0)
 const volumeControllerNum = uint8(0x07)
 
 // MIDIOutputDirectory the directory where the converted MIDI files will be stored
-var MIDIOutputDirectory = "output"
+var MIDIOutputDirectory = "/tmp"
 
 // NonEmphasizedTrackVolume the volume at which to set the non-emphasized tracks (default 40)
 var NonEmphasizedTrackVolume = uint8(40)
@@ -91,6 +95,18 @@ func HandleRequest(ctx context.Context, payload MIDILambdaPayload) error {
 		fmt.Println("No filenames provided in payload - exiting.")
 	}
 
+	fmt.Println("Starting MIDI split process...")
+
+	var wg sync.WaitGroup
+	wg.Add(len(payload.MIDIFilenames))
+
+	for i := 0; i < len(payload.MIDIFilenames); i++ {
+		fPath := "/tmp/" + payload.MIDIFilenames[i]
+		SplitParts(&wg, fPath)
+	}
+	wg.Wait()
+	fmt.Println("All done!")
+
 	return nil
 }
 
@@ -99,9 +115,9 @@ func main() {
 }
 
 func downloadFromS3Bucket(midiFilename string) {
-	item := "/tmp/" + midiFilename
+	localFileLoc := "/tmp/" + midiFilename
 
-	file, err := os.Create(item)
+	file, err := os.Create(localFileLoc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -252,12 +268,50 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string) {
 	}
 	wg.Wait()
 
-	var convertWg sync.WaitGroup
-	convertWg.Add(len(outputMIDIFilePaths))
-	for _, filepath := range outputMIDIFilePaths {
-		go runConversionScript(&convertWg, filepath)
+	fmt.Println("Finished creating new midi files")
+
+	files, err := ioutil.ReadDir("/tmp/")
+	if err != nil {
+		log.Fatal(err)
 	}
-	convertWg.Wait()
+
+	for _, file := range files {
+		fmt.Println(file.Name(), file.IsDir())
+	}
+
+	err = uploadMIDIFilesToS3(outputMIDIFilePaths)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func uploadMIDIFilesToS3(filenames []string) error {
+	// The session the S3 Uploader will use
+	sess := session.Must(session.NewSession())
+
+	// Create an uploader with the session and default options
+	uploader := s3manager.NewUploader(sess)
+	for _, filename := range filenames {
+
+		f, err := os.Open(filename)
+		if err != nil {
+			return fmt.Errorf("failed to open file %q, %v", filename, err)
+		}
+
+		trimmedFilename := strings.ReplaceAll(filename, "/tmp/", "")
+		// Upload the file to S3.
+		result, err := uploader.Upload(&s3manager.UploadInput{
+			Bucket: aws.String(COMPONENT_MIDI_FILES_BUCKET),
+			Key:    aws.String(trimmedFilename),
+			Body:   f,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upload file, %v", err)
+		}
+		fmt.Printf("file uploaded to, %s\n", aws.StringValue(&result.Location))
+	}
+
+	return nil
 }
 
 func runConversionScript(wg *sync.WaitGroup, filepath string) {
@@ -341,18 +395,18 @@ func writeNewMIDIFile(wg *sync.WaitGroup, fileNum int, newMidiFile *smf.MIDIFile
 	trackNameMap = handleDuplicateTrackNames(trackNameMap)
 	// if the track didn't have a name (e.g., a track consisting only of META_EVENT's), we skip the .mid file creation
 	if trackName, ok := trackNameMap[uint16(fileNum)]; ok {
-		newFileName = "./" + MIDIOutputDirectory + "/" + midiFileName + "_" + trackName + ".mid"
+		newFileName = MIDIOutputDirectory + "/" + midiFileName + "_" + trackName + ".mid"
 	} else {
 		return
 	}
 
-	printWrapper(fmt.Sprint("Creating ", newFileName, " with all other tracks set to volume ", NonEmphasizedTrackVolume))
+	fmt.Println("Creating ", newFileName, " with all other tracks set to volume ", NonEmphasizedTrackVolume)
 
-	newpath := filepath.Join(".", MIDIOutputDirectory)
-	err := os.MkdirAll(newpath, os.ModePerm)
-	if err != nil {
-		log.Fatalf("Failed to create directory %v with error: %v", newFileName, err)
-	}
+	// newpath := filepath.Join(".", MIDIOutputDirectory)
+	// err := os.MkdirAll(newpath, os.ModePerm)
+	// if err != nil {
+	// 	log.Fatalf("Failed to create directory %v with error: %v", newFileName, err)
+	// }
 	outputMidi, err := os.Create(newFileName)
 	if err != nil {
 		log.Fatalf("Failed to create new MIDI file with error: %v", err)
