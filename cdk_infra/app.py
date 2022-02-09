@@ -5,6 +5,7 @@ from shutil import make_archive
 from aws_cdk import (
     aws_lambda as lambda_,
     aws_iam as iam,
+    aws_lambda_go as alg,
     core,
 )
 
@@ -49,17 +50,33 @@ class MIDIStack(core.Stack):
         # make_archive("midi_to_mp3_lambda/midi_to_mp3_lambda",
         #              'zip', "./midi_to_mp3_lambda/")
         
+
+
         lambda_code = lambda_.DockerImageCode.from_image_asset(directory='./midi_to_mp3_lambda/',
                                                                file="Dockerfile",
                                                                build_args={"AWS_ACCESS_KEY_ID": os.environ.get("AWS_ACCESS_KEY_ID"),
                                                                            "AWS_SECRET_ACCESS_KEY": os.environ.get("AWS_SECRET_ACCESS_KEY")
                                                                            })
 
+        forensics_lambda = alg.GoFunction(self, id="midi_split_lambda",
+                       entry="./midi_split_lambda/midi_split_lambda.go",
+                       timeout=core.Duration.minutes(
+                           15),
+                       runtime=lambda_.Runtime.GO_1_X,
+                       role=lambda_role,
+                       function_name=f"midi-split-lambda",
+                       memory_size=1024,
+                       bundling={
+                           "environment": {
+                               "GO111MODULE": "off"
+                           }
+                       })
+
         midi_to_mp3_lambda = lambda_.DockerImageFunction(self, id="midi_to_mp3_lambda",
                                          role=lambda_role,
                                          function_name="midi-to-mp3",
                                          memory_size=1024,
-                                         timeout=core.Duration.minutes(15),
+                                         timeout=core.Duration.minutes(5),
                                          code=lambda_code
                                          )
 

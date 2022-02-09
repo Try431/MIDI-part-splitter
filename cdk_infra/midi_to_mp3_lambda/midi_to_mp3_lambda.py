@@ -30,6 +30,8 @@ def convert_midi_to_mp3():
     wav_audio.export(MP3_OUTPUT_FILE_LOC, format="mp3")
 
     if path.exists(WAV_TEMP_FILE_LOC):
+        # print("Uploading mp3 file to s3")
+        # S3_CLIENT.upload_file(WAV_TEMP_FILE_LOC, S3_BUCKET, "Los_Peces_Bass_music.mp3")
         print("Cleaning up unnecessary intermediate files")
         remove(WAV_TEMP_FILE_LOC)
     else:
