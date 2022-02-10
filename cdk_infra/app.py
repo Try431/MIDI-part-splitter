@@ -1,7 +1,4 @@
-import sys
 import os
-import subprocess
-from shutil import make_archive
 from aws_cdk import (
     aws_lambda as lambda_,
     aws_iam as iam,
@@ -14,6 +11,8 @@ from aws_cdk import (
 )
 
 COMPONENT_MIDI_FILES_BUCKET = "component-midi-files"
+MIDI_FILE_DROPOFF_BUCKET = "midi-file-dropoff"
+CREATED_MP3_FILES_BUCKET = "created-mp3-files"
 
 class MIDIStack(core.Stack):
     def __init__(self, app: core.App, id: str, **kwargs) -> None:
@@ -36,27 +35,6 @@ class MIDIStack(core.Stack):
             role_name=f"midi-to-mp3-lambda-role")
 
         # SQS
-        # request_sqs = sqs.Queue(self, id=f"py2d2-sqs",
-        #                         queue_name=f"py2d2-request-sqs",
-        #                         visibility_timeout=core.Duration.hours(2),
-        #                         retention_period=core.Duration.hours(1))
-
-        # S3
-
-        # the S3 bucket that holds the CSVs exported from Redshift
-        # redshift_csv_bucket = s3.Bucket(self, id="redshift_csv_bucket",
-        #                                 bucket_name=REDSHIFT_TO_CSV_BUCKET,
-        #                                 auto_delete_objects=False)
-
-        # MIDI to MP3 Lambda
-        # subprocess.check_call([sys.executable, "-m", "pip", "install", "fluidsynth==0.2", "pydub==0.24.1", "midi2audio==0.1.1", "--target", "midi_to_mp3_lambda/libs/"])
-
-        # this is packaging up the lambda's external dependenices into a .zip file
-        # make_archive("midi_to_mp3_lambda/midi_to_mp3_lambda",
-        #              'zip', "./midi_to_mp3_lambda/")
-        
-
-        # SQS
         conversion_sqs = sqs.Queue(self, id=f"conversion_sqs",
                                  queue_name=f"conversion_sqs",
                                  visibility_timeout=core.Duration.hours(12),
@@ -64,12 +42,22 @@ class MIDIStack(core.Stack):
         
         # S3
         
-        # TODO - create the other two s3 buckets
-        dataframe_csv_bucket = s3.Bucket(self, id="dataframe_csv_bucket",
+        midi_file_dropoff_bucket = s3.Bucket(self, id="midi_files_dropoff",
+                                            bucket_name=MIDI_FILE_DROPOFF_BUCKET,
+                                            auto_delete_objects=True,
+                                            removal_policy=core.RemovalPolicy.DESTROY)
+        
+        created_mp3_files_bucket = s3.Bucket(self, id="created_mp3_files",
+                                            bucket_name=CREATED_MP3_FILES_BUCKET,
+                                            auto_delete_objects=True,
+                                            removal_policy=core.RemovalPolicy.DESTROY)
+        
+        component_midi_files_bucket = s3.Bucket(self, id="component_midi_files",
                                             bucket_name=COMPONENT_MIDI_FILES_BUCKET,
-                                            auto_delete_objects=False)
+                                            auto_delete_objects=True,
+                                            removal_policy=core.RemovalPolicy.DESTROY)
 
-        dataframe_csv_bucket.add_event_notification(event=s3.EventType.OBJECT_CREATED,
+        component_midi_files_bucket.add_event_notification(event=s3.EventType.OBJECT_CREATED,
                                                         dest=s3n.SqsDestination(conversion_sqs))
 
         # Lambdas
@@ -94,7 +82,7 @@ class MIDIStack(core.Stack):
                        runtime=lambda_.Runtime.GO_1_X,
                        role=lambda_role,
                        function_name=f"midi-split-lambda",
-                       memory_size=1024,
+                       memory_size=512,
                        bundling={
                            "environment": {
                                "GO111MODULE": "off"
