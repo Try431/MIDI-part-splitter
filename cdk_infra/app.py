@@ -6,12 +6,14 @@ from aws_cdk import (
     aws_lambda as lambda_,
     aws_iam as iam,
     aws_lambda_go as alg,
+    aws_s3 as s3,
+    aws_sqs as sqs,
+    aws_s3_notifications as s3n,
+    aws_lambda_event_sources as eventsources,
     core,
 )
 
-DATAFRAME_TO_CSV_BUCKET = "kinetic-py2d2-df-csv-output"
-REDSHIFT_TO_CSV_BUCKET = "redshift-timestmap-export-api-csv"
-
+COMPONENT_MIDI_FILES_BUCKET = "component-midi-files"
 
 class MIDIStack(core.Stack):
     def __init__(self, app: core.App, id: str, **kwargs) -> None:
@@ -24,10 +26,13 @@ class MIDIStack(core.Stack):
 
         lambda_access_policy = iam.ManagedPolicy.from_managed_policy_arn(
             self, id="lambda_access_policy", managed_policy_arn="arn:aws:iam::aws:policy/AWSLambda_FullAccess")
+        
+        logs_policy = iam.ManagedPolicy.from_managed_policy_arn(
+            self, id="logs_policy", managed_policy_arn="arn:aws:iam::aws:policy/CloudWatchLogsFullAccess")
 
         # Roles
         lambda_role = iam.Role(self, id="lambda_role", assumed_by=iam.ServicePrincipal(service="lambda.amazonaws.com"),
-                               managed_policies=[s3_access_policy, lambda_access_policy],
+                               managed_policies=[s3_access_policy, lambda_access_policy, logs_policy],
             role_name=f"midi-to-mp3-lambda-role")
 
         # SQS
@@ -51,14 +56,38 @@ class MIDIStack(core.Stack):
         #              'zip', "./midi_to_mp3_lambda/")
         
 
+        # SQS
+        conversion_sqs = sqs.Queue(self, id=f"conversion_sqs",
+                                 queue_name=f"conversion_sqs",
+                                 visibility_timeout=core.Duration.hours(12),
+                                 retention_period=core.Duration.days(1))
+        
+        # S3
+        
+        # TODO - create the other two s3 buckets
+        dataframe_csv_bucket = s3.Bucket(self, id="dataframe_csv_bucket",
+                                            bucket_name=COMPONENT_MIDI_FILES_BUCKET,
+                                            auto_delete_objects=False)
 
+        dataframe_csv_bucket.add_event_notification(event=s3.EventType.OBJECT_CREATED,
+                                                        dest=s3n.SqsDestination(conversion_sqs))
+
+        # Lambdas
         lambda_code = lambda_.DockerImageCode.from_image_asset(directory='./midi_to_mp3_lambda/',
                                                                file="Dockerfile",
                                                                build_args={"AWS_ACCESS_KEY_ID": os.environ.get("AWS_ACCESS_KEY_ID"),
                                                                            "AWS_SECRET_ACCESS_KEY": os.environ.get("AWS_SECRET_ACCESS_KEY")
                                                                            })
+        
+        midi_to_mp3_lambda = lambda_.DockerImageFunction(self, id="midi_to_mp3_lambda",
+                                         role=lambda_role,
+                                         function_name="midi-to-mp3",
+                                         memory_size=1024,
+                                         timeout=core.Duration.minutes(5),
+                                         code=lambda_code
+                                         )
 
-        forensics_lambda = alg.GoFunction(self, id="midi_split_lambda",
+        midi_split_lambda = alg.GoFunction(self, id="midi_split_lambda",
                        entry="./midi_split_lambda/midi_split_lambda.go",
                        timeout=core.Duration.minutes(
                            15),
@@ -71,14 +100,15 @@ class MIDIStack(core.Stack):
                                "GO111MODULE": "off"
                            }
                        })
+        
+        # Event Sources
+        
+        midi_to_mp3_lambda.add_event_source(
+            eventsources.SqsEventSource(queue=conversion_sqs)
+        )
 
-        midi_to_mp3_lambda = lambda_.DockerImageFunction(self, id="midi_to_mp3_lambda",
-                                         role=lambda_role,
-                                         function_name="midi-to-mp3",
-                                         memory_size=1024,
-                                         timeout=core.Duration.minutes(5),
-                                         code=lambda_code
-                                         )
+        
+
 
 
 app = core.App()
