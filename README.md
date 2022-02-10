@@ -22,11 +22,11 @@ $ go build
 - [x] Set emphasized track to a different MIDI instrument
 - [x] Create .mp3 files from MIDI files
 - [x] Start building a GUI for the tool (decided not to pursue this)
-- [ ] Build out the single MIDI to component MIDI parts split in AWS (ideally Lambda)
-- [ ] Component MIDI files are uploaded to S3
-- [ ] Create S3 event trigger for intermediate MIDI part files for kicking off MIDI to MP3 conversion lambda
+- [x] Build out the single MIDI to component MIDI parts split in AWS (ideally Lambda)
+- [x] Component MIDI files are uploaded to S3
+- [x] Create S3 event trigger for intermediate MIDI part files for kicking off MIDI to MP3 conversion lambda
 - [x] Build out MIDI to MP3 conversion in an AWS Lambda
-- [ ] Final MP3 files are uploaded to S3
+- [x] Final MP3 files are uploaded to S3
 - [ ] Create S3 upload event trigger for kicking off the flow (via SQS)
 - [ ] Build basic frontend that allows for file upload to S3
 - [ ] Build basic frontend functionality for downloading final MP3 files from S3
