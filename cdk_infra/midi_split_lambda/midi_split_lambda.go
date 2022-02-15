@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Try431/EasyMIDI/smf"
 	"github.com/Try431/EasyMIDI/smfio"
@@ -75,36 +76,99 @@ type MIDILambdaPayload struct {
 	EmphasizedInstrumentNum *int     `json:"emphasized_instrument_num,omitempty"`
 }
 
-func HandleRequest(ctx context.Context, payload MIDILambdaPayload) error {
-	fmt.Printf("Received payload: %+v", payload)
-	if payload.NonEmphasizedVolume != nil {
-		NonEmphasizedTrackVolume = uint8(*payload.NonEmphasizedVolume)
+type SQSEventPayload struct {
+	Records []struct {
+		Body string `json:"body"`
+	} `json:"Records"`
+}
+
+type S3EventPayload struct {
+	Records []struct {
+		EventVersion string    `json:"eventVersion"`
+		EventSource  string    `json:"eventSource"`
+		AwsRegion    string    `json:"awsRegion"`
+		EventTime    time.Time `json:"eventTime"`
+		EventName    string    `json:"eventName"`
+		UserIdentity struct {
+			PrincipalID string `json:"principalId"`
+		} `json:"userIdentity"`
+		RequestParameters struct {
+			SourceIPAddress string `json:"sourceIPAddress"`
+		} `json:"requestParameters"`
+		ResponseElements struct {
+			XAmzRequestID string `json:"x-amz-request-id"`
+			XAmzID2       string `json:"x-amz-id-2"`
+		} `json:"responseElements"`
+		S3 struct {
+			S3SchemaVersion string `json:"s3SchemaVersion"`
+			ConfigurationID string `json:"configurationId"`
+			Bucket          struct {
+				Name          string `json:"name"`
+				OwnerIdentity struct {
+					PrincipalID string `json:"principalId"`
+				} `json:"ownerIdentity"`
+				Arn string `json:"arn"`
+			} `json:"bucket"`
+			Object struct {
+				Key       string `json:"key"`
+				Size      int    `json:"size"`
+				ETag      string `json:"eTag"`
+				Sequencer string `json:"sequencer"`
+			} `json:"object"`
+		} `json:"s3"`
+	} `json:"Records"`
+}
+
+func HandleRequest(ctx context.Context, payload SQSEventPayload) error {
+	fmt.Printf("Received payload: %v\n", payload)
+	var s3Payload S3EventPayload
+
+	err := json.Unmarshal([]byte(payload.Records[0].Body), &s3Payload)
+	if err != nil {
+		fmt.Println("Failed to unmarshal S3 payload into json struct with error: ", err)
+		return err
 	}
 
-	if payload.EmphasizedInstrumentNum != nil {
-		EmphasizedInstrumentNum = uint8(*payload.EmphasizedInstrumentNum)
-	}
-
-	if len(payload.MIDIFilenames) != 0 {
-		// TODO - look into downloading in parallel
-		for _, midiFilename := range payload.MIDIFilenames {
-			downloadFromS3Bucket(midiFilename)
-		}
-		fmt.Println("Finished downloading all files in payload")
-	} else {
-		fmt.Println("No filenames provided in payload - exiting.")
-	}
+	midiFilename := s3Payload.Records[0].S3.Object.Key
+	downloadFromS3Bucket(midiFilename)
+	fmt.Println("Finished downloading all files in payload")
 
 	fmt.Println("Starting MIDI split process...")
 
-	var wg sync.WaitGroup
-	wg.Add(len(payload.MIDIFilenames))
-
-	for i := 0; i < len(payload.MIDIFilenames); i++ {
-		fPath := "/tmp/" + payload.MIDIFilenames[i]
-		SplitParts(&wg, fPath)
-	}
+	var wg sync.WaitGroup // this isn't really useful right now, but adding so I don't have to modify SplitParts func
+	wg.Add(1)
+	fPath := "/tmp/" + midiFilename
+	SplitParts(&wg, fPath)
 	wg.Wait()
+
+	// if payload.NonEmphasizedVolume != nil {
+	// 	NonEmphasizedTrackVolume = uint8(*payload.NonEmphasizedVolume)
+	// }
+
+	// if payload.EmphasizedInstrumentNum != nil {
+	// 	EmphasizedInstrumentNum = uint8(*payload.EmphasizedInstrumentNum)
+	// }
+
+	// if len(payload.MIDIFilenames) != 0 {
+	// 	// TODO - look into downloading in parallel
+	// 	for _, midiFilename := range payload.MIDIFilenames {
+	// 		downloadFromS3Bucket(midiFilename)
+	// 	}
+	// 	fmt.Println("Finished downloading all files in payload")
+	// } else {
+	// 	fmt.Println("No filenames provided in payload - exiting.")
+	// }
+
+	// fmt.Println("Starting MIDI split process...")
+
+	// var wg sync.WaitGroup
+	// wg.Add(len(payload.MIDIFilenames))
+
+	// for i := 0; i < len(payload.MIDIFilenames); i++ {
+	// 	fPath := "/tmp/" + payload.MIDIFilenames[i]
+	// 	SplitParts(&wg, fPath)
+	// }
+	// wg.Wait()
 	fmt.Println("All done!")
 
 	return nil
@@ -270,15 +334,6 @@ func SplitParts(mainWg *sync.WaitGroup, midiFilePath string) {
 
 	fmt.Println("Finished creating new midi files")
 
-	files, err := ioutil.ReadDir("/tmp/")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, file := range files {
-		fmt.Println(file.Name(), file.IsDir())
-	}
-
 	err = uploadMIDIFilesToS3(outputMIDIFilePaths)
 	if err != nil {
 		fmt.Println(err)
@@ -308,7 +363,7 @@ func uploadMIDIFilesToS3(filenames []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to upload file, %v", err)
 		}
-		fmt.Printf("file uploaded to, %s\n", aws.StringValue(&result.Location))
+		fmt.Printf("file uploaded to %s\n", aws.StringValue(&result.Location))
 	}
 
 	return nil

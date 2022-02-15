@@ -37,6 +37,7 @@ def convert_midi_to_mp3(key=None):
     mp3_file = key.replace(".mid", "") + ".mp3"
     wav_audio.export(f"/tmp/{mp3_file}", format="mp3")
     
+    print(f"Uploading mp3 file {key} to s3")
     try:
         S3_CLIENT.upload_file(f"/tmp/{mp3_file}", CREATED_MP3_FILES_BUCKET, mp3_file)
     except Exception as e:
@@ -45,7 +46,6 @@ def convert_midi_to_mp3(key=None):
         
     # clean up mp3 files, as we've uploaded them to s3
     if path.exists(WAV_TEMP_FILE_LOC):
-        print("Uploading mp3 file to s3")
         print("Cleaning up unnecessary intermediate files")
         remove(WAV_TEMP_FILE_LOC)
         
@@ -56,7 +56,6 @@ def convert_midi_to_mp3(key=None):
 
 def handler(event=None, context=None):
     print("Received event payload")
-    # print(event)
     bodies = []
     component_midi_keys = []
     for r in event.get("Records"):

@@ -27,7 +27,7 @@ $ go build
 - [x] Create S3 event trigger for intermediate MIDI part files for kicking off MIDI to MP3 conversion lambda
 - [x] Build out MIDI to MP3 conversion in an AWS Lambda
 - [x] Final MP3 files are uploaded to S3
-- [ ] Create S3 upload event trigger for kicking off the flow (via SQS)
+- [x] Create S3 upload event trigger for kicking off the flow (via SQS)
 - [ ] Build basic frontend that allows for file upload to S3
 - [ ] Build basic frontend functionality for downloading final MP3 files from S3
 - [ ] Add ability for users to be able to customize payload to the MIDI split lambda (probably via API Gateway)
