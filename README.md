@@ -30,6 +30,7 @@ $ go build
 - [ ] Create S3 upload event trigger for kicking off the flow (via SQS)
 - [ ] Build basic frontend that allows for file upload to S3
 - [ ] Build basic frontend functionality for downloading final MP3 files from S3
+- [ ] Add ability for users to be able to customize payload to the MIDI split lambda (probably via API Gateway)
 
 
 ## How to use
@@ -281,7 +282,7 @@ All done! 😄 Enjoy your MP3 files!
 
 ## Author
 
-* **Try431** - *main developer* - [Try431](https://github.com/Try431)
+* **Isaac Garza** - *main developer* - [Try431](https://github.com/Try431)
 
 ## Helpful References for MIDI Technical Specs
 - [http://archive.is/awjmh/](http://archive.is/awjmh/) (was originally https://www.csie.ntu.edu.tw/~r92092/ref/midi/ but the link died)
