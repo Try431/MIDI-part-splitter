@@ -279,6 +279,8 @@ All done! 😄 Enjoy your MP3 files!
 
 * [Go](https://golang.org/)
 * [Bash](https://www.gnu.org/software/bash/)
+* [Python](https://www.python.org/)
+* [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/work-with-cdk-python.html)
 
 ## Author
 
@@ -286,9 +288,9 @@ All done! 😄 Enjoy your MP3 files!
 
 ## Helpful References for MIDI Technical Specs
 - [http://archive.is/awjmh/](http://archive.is/awjmh/) (was originally https://www.csie.ntu.edu.tw/~r92092/ref/midi/ but the link died)
-- [https://www.recordingblogs.com/wiki/midi-meta-messages](https://www.recordingblogs.com/wiki/midi-meta-messages)
-- [https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf](https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf)
+- [https://archive.is/FH65n](https://archive.is/FH65n) (originally: https://www.recordingblogs.com/wiki/midi-meta-messages)
+- [https://archive.org/details/midi-code-notes-NYU-FMT-Bello](https://archive.org/details/midi-code-notes-NYU-FMT-Bello) (originally: https://www.nyu.edu/classes/bello/FMT_files/9_MIDI_code.pdf)
 - [https://en.wikipedia.org/wiki/MIDI_timecode](https://en.wikipedia.org/wiki/MIDI_timecode)
-- [https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/](https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/)
-- [http://www.music-software-development.com/midi-tutorial.html](http://www.music-software-development.com/midi-tutorial.html)
-- [https://www.midi.org/specifications/item/gm-level-1-sound-set](https://www.midi.org/specifications/item/gm-level-1-sound-set)
+- [https://archive.is/Iy8wc](https://archive.is/Iy8wc) (originally: https://sites.uci.edu/camp2014/2014/05/19/timing-in-midi-files/)
+- [https://archive.is/K0UgZ](https://archive.is/K0UgZ) (originally: http://www.music-software-development.com/midi-tutorial.html)
+- [https://archive.is/S8eqL](https://archive.is/S8eqL) (originally: https://www.midi.org/specifications/item/gm-level-1-sound-set)
