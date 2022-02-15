@@ -7,6 +7,8 @@ from aws_cdk import (
     aws_sqs as sqs,
     aws_s3_notifications as s3n,
     aws_lambda_event_sources as eventsources,
+    aws_events as events,
+    aws_events_targets as targets,
     core,
 )
 
@@ -40,6 +42,12 @@ class MIDIStack(core.Stack):
                                  visibility_timeout=core.Duration.hours(12),
                                  retention_period=core.Duration.days(1))
         
+        kickoff_sqs = sqs.Queue(self, id=f"kickoff_sqs",
+                                 queue_name=f"kickoff_sqs",
+                                 visibility_timeout=core.Duration.hours(12),
+                                 retention_period=core.Duration.days(1))
+
+
         # S3
         
         midi_file_dropoff_bucket = s3.Bucket(self, id="midi_files_dropoff",
@@ -47,6 +55,9 @@ class MIDIStack(core.Stack):
                                             auto_delete_objects=True,
                                             removal_policy=core.RemovalPolicy.DESTROY)
         
+        midi_file_dropoff_bucket.add_event_notification(event=s3.EventType.OBJECT_CREATED,
+                                                        dest=s3n.SqsDestination(kickoff_sqs))
+
         created_mp3_files_bucket = s3.Bucket(self, id="created_mp3_files",
                                             bucket_name=CREATED_MP3_FILES_BUCKET,
                                             auto_delete_objects=True,
@@ -89,10 +100,39 @@ class MIDIStack(core.Stack):
                            }
                        })
         
+
+        s3_cleanup_lambda = lambda_.Function(self, id="s3_cleanup_lambda",
+                                             runtime=lambda_.Runtime.PYTHON_3_8,
+                                             role=lambda_role,
+                                             function_name="s3-cleanup-lambda",
+                                             memory_size=256,
+                                             timeout=core.Duration.minutes(5),
+                                             environment={
+                                                 "NUM_WEEKS_TO_KEEP_FILES": "1"},
+                                             handler="s3_cleanup_lambda.handler",
+                                             code=lambda_.Code.from_asset(
+                                                 os.path.join(".", "s3_cleanup_lambda"))
+                                             )
+
+        weekly_on_sunday_cron = events.Rule(
+            self, "Rule",
+            schedule=events.Schedule.cron(
+                minute='0',
+                hour='0',
+                week_day="SUN",
+                month='*',
+                year='*'),
+        )
+        weekly_on_sunday_cron.add_target(targets.LambdaFunction(s3_cleanup_lambda))
+
         # Event Sources
         
         midi_to_mp3_lambda.add_event_source(
             eventsources.SqsEventSource(queue=conversion_sqs)
+        )
+
+        midi_split_lambda.add_event_source(
+            eventsources.SqsEventSource(queue=kickoff_sqs)
         )
 
         
